@@ -20,10 +20,7 @@ void APicrossBlock::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (BlockMesh && DefaultMaterial)
-	{
-		BlockMesh->SetMaterial(0, DefaultMaterial);
-	}
+	ResetBlock();
 }
 
 void APicrossBlock::DarkenBlock() const
@@ -55,6 +52,14 @@ void APicrossBlock::CrossBlock() const
 		{
 			BlockMesh->SetMaterial(0, CrossMaterial);
 		}
+	}
+}
+
+void APicrossBlock::ResetBlock() const
+{
+	if (BlockMesh && DefaultMaterial)
+	{
+		BlockMesh->SetMaterial(0, DefaultMaterial);
 	}
 }
 

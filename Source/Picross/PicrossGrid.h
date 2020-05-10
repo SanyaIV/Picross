@@ -15,12 +15,16 @@ public:
 	// Sets default values for this actor's properties
 	APicrossGrid();
 
+	void CreateGrid(int32 GridSize);
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
+private:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Picross", meta = (AllowPrivateAccess = "true"))
+	TSubclassOf<class APicrossBlock> PicrossBlockBP;
 
+	UPROPERTY(VisibleAnywhere, Category = "Picross")
+	TArray<class APicrossBlock*> PicrossGrid;
 };

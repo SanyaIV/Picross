@@ -17,6 +17,7 @@ public:
 
 	void DarkenBlock() const;
 	void CrossBlock() const;
+	void ResetBlock() const;
 	bool IsDarkened() const;
 
 protected:
