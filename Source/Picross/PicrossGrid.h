@@ -16,12 +16,16 @@ public:
 	APicrossGrid();
 
 	void CreateGrid(int32 GridSize);
+	void ClearGrid() const;
+	void DestroyGrid();
 
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
 private:
+	FVector GetLocationForBlockCreation(int32 Index, int32 GridSize) const;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Picross", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<class APicrossBlock> PicrossBlockBP;
 
