@@ -31,4 +31,7 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = "Picross")
 	TArray<class APicrossBlock*> PicrossGrid;
+
+	UPROPERTY(EditAnywhere, Category = "Picross", meta = (AllowPrivateAccess = "true"))
+	int32 DefaultGridSize = 5;
 };

@@ -17,7 +17,7 @@ void APicrossGrid::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	CreateGrid(25);
+	CreateGrid(DefaultGridSize);
 }
 
 void APicrossGrid::CreateGrid(int32 GridSize)
