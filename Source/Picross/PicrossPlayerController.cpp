@@ -1,7 +1,22 @@
 // Copyright Sanya Larsson 2020
 
 
+#include "Blueprint/UserWidget.h"
 #include "PicrossPlayerController.h"
+
+
+void APicrossPlayerController::BeginPlay()
+{
+	if (PlayerWidgetClass)
+	{
+		UUserWidget* PlayerWidget = CreateWidget(this, PlayerWidgetClass, TEXT("Player Widget"));
+		if (PlayerWidget)
+		{
+			PlayerWidget->SetOwningPlayer(this);
+			PlayerWidget->AddToPlayerScreen();
+		}
+	}
+}
 
 bool APicrossPlayerController::LineTraceSingleByChannelFromCenterOfScreen(FHitResult& OutHit, float DistanceToCheck, ECollisionChannel TraceChannel) const
 {

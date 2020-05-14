@@ -23,4 +23,11 @@ public:
 	 * @return Whether or not something was hit by the linetrace.
 	 */
 	bool LineTraceSingleByChannelFromCenterOfScreen(FHitResult& OutHit, float DistanceToCheck, ECollisionChannel TraceChannel = ECollisionChannel::ECC_Visibility) const;
+
+protected:
+	virtual void BeginPlay() override;
+
+private:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "UI", meta = (AllowPrivateAccess = "true"))
+	TSubclassOf<class UUserWidget> PlayerWidgetClass = nullptr;
 };
