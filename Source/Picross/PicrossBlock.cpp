@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// Copyright Sanya Larsson 2020
 
 
 #include "Components/StaticMeshComponent.h"
