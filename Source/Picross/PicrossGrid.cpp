@@ -20,44 +20,62 @@ void APicrossGrid::BeginPlay()
 	CreateGrid(DefaultGridSize);
 }
 
-void APicrossGrid::CreateGrid(int32 GridSize)
+bool APicrossGrid::ValidateGridSize(FIntVector GridSize) const
 {
+	return (GridSize.X > 0 && GridSize.Y > 0 && GridSize.Z > 0);
+}
+
+void APicrossGrid::CreateGrid(FIntVector GridSize)
+{
+	if (!ValidateGridSize(GridSize))
+	{
+		UE_LOG(LogTemp, Error, TEXT("Invalid grid size: %s"), *GridSize.ToString())
+		return;
+	}
+
 	if (PicrossGrid.Num() > 0)
 	{
 		DestroyGrid();
 	}
 
-	for (int32 i = 0; i < GridSize * GridSize; ++i)
+	for (int32 i = 0; i < GridSize.X * GridSize.Y * GridSize.Z; ++i)
 	{
 		FVector Location = GetLocationForBlockCreation(i, GridSize);
 		PicrossGrid.Add(GetWorld()->SpawnActor<APicrossBlock>(PicrossBlockBP, Location, GetActorRotation()));
 	}
 }
 
-FVector APicrossGrid::GetLocationForBlockCreation(int32 Index, int32 GridSize) const
+FVector APicrossGrid::GetLocationForBlockCreation(int32 Index, FIntVector GridSize) const
 {
-	const static float Distance = 110.f;
+	const int32 GridSizeXY = GridSize.X * GridSize.Y;
 	FVector Location = FVector::ZeroVector;
-	if (Index == 0)
+	if (Index == 0) // Place the first block in the top left corner of the bottom-most 2D grid so that the grid actor is in the middle of the bottom-most grid.
 	{
-		const float Offset = Distance * (GridSize/2) - (GridSize % 2 == 0 ? Distance / 2 : 0); // Place the first block in the top left corner so that the grid actor is in the middle.
+		const float OffsetY = DistanceBetweenBlocks * (GridSize.X / 2) - (GridSize.X % 2 == 0 ? DistanceBetweenBlocks / 2 : 0); // Get the offset for the first block in Y-axis.
+		const float OffsetX = DistanceBetweenBlocks * (GridSize.Y / 2) - (GridSize.Y % 2 == 0 ? DistanceBetweenBlocks / 2 : 0); // Get the offset for the first block in X-axis.
 		Location = GetActorLocation();
-		Location.Y -= Offset;
-		Location.X -= Offset;
+		Location -= GetActorRightVector() * OffsetY;
+		Location -= GetActorForwardVector() * OffsetX;
 	}
-	else if (PicrossGrid.IsValidIndex((Index % GridSize == 0 ? Index - GridSize : Index - 1)))
+	else if (PicrossGrid.IsValidIndex((Index % GridSizeXY == 0 ? Index - GridSizeXY : Index % GridSize.Y == 0 ? Index - GridSize.Y : Index - 1))) // Find the index we intend to check and check if it's valid.
 	{
-		if (Index % GridSize == 0 && PicrossGrid[Index - GridSize] != nullptr)
+		// Order of operation here is important.
+		if (Index % GridSizeXY == 0 && PicrossGrid[Index - GridSizeXY] != nullptr) // First check if the index is the first block in a new 2D array layer.
 		{
-			Location = PicrossGrid[Index - GridSize]->GetActorLocation();
-			Location.Y += Distance;
+			APicrossBlock* Block = PicrossGrid[Index - GridSizeXY];
+			Location = Block->GetActorLocation() + Block->GetActorUpVector() * DistanceBetweenBlocks;
 		}
-		else if (PicrossGrid[Index - 1] != nullptr)
+		else if (Index % GridSize.Y == 0 && PicrossGrid[Index - GridSize.Y] != nullptr) // Second check if the index is the first block in a row in a 2D array layer
 		{
-			Location = PicrossGrid[Index - 1]->GetActorLocation();
-			Location.X += Distance;
+			APicrossBlock* Block = PicrossGrid[Index - GridSize.Y];
+			Location = Block->GetActorLocation() + Block->GetActorRightVector() * DistanceBetweenBlocks;
 		}
-		else
+		else if (PicrossGrid[Index - 1] != nullptr) // If neither of the previous checks were true it should be an index in the middle of a row.
+		{
+			APicrossBlock* Block = PicrossGrid[Index - 1];
+			Location = Block->GetActorLocation() + Block->GetActorForwardVector() * DistanceBetweenBlocks;
+		}
+		else // If none of the previous checks were true then we had the index but the pointer at that index poitned to nullptr which should never happen.
 		{
 			UE_LOG(LogTemp, Error, TEXT("PicrossGrid contained nullptr!"))
 		}

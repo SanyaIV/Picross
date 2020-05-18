@@ -15,7 +15,8 @@ public:
 	// Sets default values for this actor's properties
 	APicrossGrid();
 
-	void CreateGrid(int32 GridSize);
+	bool ValidateGridSize(FIntVector GridSize) const;
+	void CreateGrid(FIntVector GridSize);
 	void ClearGrid() const;
 	void DestroyGrid();
 
@@ -24,7 +25,7 @@ protected:
 	virtual void BeginPlay() override;
 
 private:
-	FVector GetLocationForBlockCreation(int32 Index, int32 GridSize) const;
+	FVector GetLocationForBlockCreation(int32 Index, FIntVector GridSize) const;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Picross", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<class APicrossBlock> PicrossBlockBP;
@@ -33,5 +34,8 @@ private:
 	TArray<class APicrossBlock*> PicrossGrid;
 
 	UPROPERTY(EditAnywhere, Category = "Picross", meta = (AllowPrivateAccess = "true"))
-	int32 DefaultGridSize = 5;
+	FIntVector DefaultGridSize {5,5,1};
+
+	UPROPERTY(EditAnywhere, Category = "Picross", meta = (AllowPrivateAccess = "true"))
+	float DistanceBetweenBlocks = 110.f;
 };
