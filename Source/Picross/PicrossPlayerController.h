@@ -7,7 +7,7 @@
 #include "PicrossPlayerController.generated.h"
 
 /**
- * 
+ * The Picross Player Controller that controlls the Picross Pawn
  */
 UCLASS()
 class PICROSS_API APicrossPlayerController : public APlayerController

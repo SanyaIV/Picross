@@ -6,6 +6,9 @@
 #include "GameFramework/Actor.h"
 #include "PicrossBlock.generated.h"
 
+/**
+ * The Picross Block
+ */
 UCLASS()
 class PICROSS_API APicrossBlock : public AActor
 {

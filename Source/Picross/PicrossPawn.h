@@ -6,6 +6,9 @@
 #include "GameFramework/Pawn.h"
 #include "PicrossPawn.generated.h"
 
+/**
+ * The Picross pawn responsible for interacting with the Picross puzzle.
+ */
 UCLASS()
 class PICROSS_API APicrossPawn : public APawn
 {

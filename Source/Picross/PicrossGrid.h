@@ -6,6 +6,9 @@
 #include "GameFramework/Actor.h"
 #include "PicrossGrid.generated.h"
 
+/**
+ * The Picross Grid creator which handles creating the Picross Grid.
+ */
 UCLASS()
 class PICROSS_API APicrossGrid : public AActor
 {
@@ -20,6 +23,9 @@ public:
 	void ClearGrid() const;
 	void DestroyGrid();
 
+	UFUNCTION(BlueprintCallable, CallInEditor, Category = "Picross")
+	void SavePuzzle() const;
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -30,6 +36,7 @@ private:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Picross", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<class APicrossBlock> PicrossBlockBP;
 
+	// A 3D array implemented in a 1D array. Functions handle the 3D aspect of it.
 	UPROPERTY(VisibleAnywhere, Category = "Picross")
 	TArray<class APicrossBlock*> PicrossGrid;
 

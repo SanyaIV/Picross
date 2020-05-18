@@ -1,8 +1,15 @@
 // Copyright Sanya Larsson 2020
 
 
+#include "Engine/Engine.h"
+#include "IAssetTools.h"
+#include "AssetToolsModule.h"
+#include "UnrealEd.h"
 #include "PicrossBlock.h"
 #include "PicrossGrid.h"
+#include "PicrossPuzzleData.h"
+#include "PicrossPuzzleFactory.h"
+
 
 // Sets default values
 APicrossGrid::APicrossGrid()
@@ -110,4 +117,17 @@ void APicrossGrid::DestroyGrid()
 	}
 
 	PicrossGrid.Empty();
+}
+
+void APicrossGrid::SavePuzzle() const
+{
+	UPicrossPuzzleData* ExistingObject = NewObject<UPicrossPuzzleData>();
+	UPicrossPuzzleFactory* NewFactory = NewObject<UPicrossPuzzleFactory>();
+	NewFactory->CreatedObjectAsset = ExistingObject;
+	
+	FAssetToolsModule& AssetToolsModule = FAssetToolsModule::GetModule();
+	UObject* NewAsset = AssetToolsModule.Get().CreateAsset(NewFactory->GetSupportedClass(), NewFactory);
+	TArray<UObject*> ObjectsToSync;
+	ObjectsToSync.Add(NewAsset);
+	GEditor->SyncBrowserToObjects(ObjectsToSync);
 }
