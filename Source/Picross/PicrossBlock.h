@@ -18,10 +18,15 @@ public:
 	// Sets default values for this actor's properties
 	APicrossBlock();
 
+	void SetEnabled(bool bEnabled);
+
 	void DarkenBlock() const;
 	void CrossBlock() const;
 	void ResetBlock() const;
 	bool IsDarkened() const;
+
+	void SetIndexInGrid(int32 IndexToSet);
+	int32 GetIndexInGrid() const;
 
 protected:
 	// Called when the game starts or when spawned
@@ -36,4 +41,6 @@ private:
 	class UMaterialInstance* DarkenedMaterial = nullptr;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Block", meta = (AllowPrivateAccess = "true"))
 	class UMaterialInstance* CrossMaterial = nullptr;
+
+	int32 IndexInGrid = -1;
 };

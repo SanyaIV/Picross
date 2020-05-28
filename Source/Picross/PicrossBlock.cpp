@@ -23,6 +23,12 @@ void APicrossBlock::BeginPlay()
 	ResetBlock();
 }
 
+void APicrossBlock::SetEnabled(bool bEnabled)
+{
+	SetActorHiddenInGame(!bEnabled);
+	SetActorEnableCollision(bEnabled);
+}
+
 void APicrossBlock::DarkenBlock() const
 {
 	if (BlockMesh && DarkenedMaterial)
@@ -37,6 +43,8 @@ void APicrossBlock::DarkenBlock() const
 			BlockMesh->SetMaterial(0, DarkenedMaterial);
 		}
 	}
+
+	UE_LOG(LogTemp, Warning, TEXT("%d"), IndexInGrid)
 }
 
 void APicrossBlock::CrossBlock() const
@@ -75,4 +83,14 @@ bool APicrossBlock::IsDarkened() const
 	}
 
 	return false;
+}
+
+void APicrossBlock::SetIndexInGrid(int32 IndexToSet)
+{
+	IndexInGrid = IndexToSet;
+}
+
+int32 APicrossBlock::GetIndexInGrid() const
+{
+	return IndexInGrid;
 }
