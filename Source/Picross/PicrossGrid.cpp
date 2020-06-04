@@ -10,7 +10,6 @@
 #include "PicrossPuzzleData.h"
 #include "PicrossPuzzleFactory.h"
 
-
 // Sets default values
 APicrossGrid::APicrossGrid()
 {

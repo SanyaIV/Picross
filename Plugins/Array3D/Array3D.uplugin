@@ -1,0 +1,24 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "Array3D",
+	"Description": "A three dimensional specialisation of the TArray class template. Super-imposes X, Y and Z dimensions on the single-dimensional TArray, accessible by functions, not brackets. Follows C++ row-major meaning implemention is similar to [Z][Y][X] where we nest X loop within Y loop within Z loop to be the least cache unfriendly.",
+	"Category": "Other",
+	"CreatedBy": "Sanya Larsson",
+	"CreatedByURL": "",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": true,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "Array3D",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	]
+}
