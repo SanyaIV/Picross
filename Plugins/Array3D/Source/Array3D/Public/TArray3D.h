@@ -84,6 +84,21 @@ public:
 		return TArray<T>::operator[](Index);
 	}
 
+	FORCEINLINE T& operator[](FIntVector XYZ)
+	{
+		return operator[](GetIndexFromXYZ(XYZ.X, XYZ.Y, XYZ.Z));
+	}
+
+	FORCEINLINE const T& operator[](FIntVector XYZ) const
+	{
+		return operator[](GetIndexFromXYZ(XYZ.X, XYZ.Y, XYZ.Z));
+	}
+
+	FORCEINLINE SizeType GetIndexFromXYZ(SizeType X, SizeType Y, SizeType Z) const
+	{
+		return _XY * Z + _Dimensions.X * Y + X;
+	}
+
 private:
 	FIntVector _Dimensions;
 	SizeType _XY;
