@@ -62,10 +62,6 @@ public:
 		DimensionsProduct = Other.DimensionsProduct;
 	}
 
-	/** Delete Move constructor and assignment for now. Might be implemented in the future but right now their implementations aren't entirely clear. */
-	TArray3D(TArray3D<T>&& Other) = delete;
-	TArray3D<T>& operator=(TArray3D<T>&& Other) = delete;
-
 	/** Default destructor. */
 	~TArray3D() = default;
 
