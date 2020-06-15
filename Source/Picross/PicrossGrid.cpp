@@ -219,7 +219,7 @@ void APicrossGrid::SavePuzzle() const
 	NewFactory->CreatedObjectAsset = ExistingObject;
 	
 	FAssetToolsModule& AssetToolsModule = FAssetToolsModule::GetModule();
-	UObject* NewAsset = AssetToolsModule.Get().CreateAsset(NewFactory->GetSupportedClass(), NewFactory);
+	UObject* NewAsset = AssetToolsModule.Get().CreateAssetWithDialog(NewFactory->GetSupportedClass(), NewFactory);
 	TArray<UObject*> ObjectsToSync;
 	ObjectsToSync.Add(NewAsset);
 	GEditor->SyncBrowserToObjects(ObjectsToSync);

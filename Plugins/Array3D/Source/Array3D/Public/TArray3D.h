@@ -21,86 +21,158 @@
  *
  **/
 template<typename T>
-class TArray3D : TArray<T>
+class TArray3D
 {
 
 public:
-	/** Default constructor. */
-	FORCEINLINE TArray3D() : TArray<T>(), _Dimensions(FIntVector::ZeroValue), _XY(0), _XYZ(0){}
+	/** Delete default constructor */
+	TArray3D() = delete;
 
 	/**
-	* Constructor
-	* @param Dimensions - The dimensions for the 3D array in X, Y and Z.
-	*/
-	TArray3D(FIntVector Dimensions) : TArray<T>(), _Dimensions(Dimensions)
+	 * Constructor
+	 * @param Dimensions - The dimensions for the 3D array in X, Y and Z.
+	 *
+	 * Caution - Will set dimensions to 1 if less than 1 is supplied.
+	 */
+	TArray3D(FIntVector Dimensions) : Array(), Dimensions(ValidateDimensions(Dimensions))
 	{
-		_XY = _Dimensions.X * _Dimensions.Y;
-		_XYZ = _XY * _Dimensions.Z;
-		TArray<T>::SetNumZeroed(_XYZ);
+		ProdXY = Dimensions.X * Dimensions.Y;
+		DimensionsProduct = ProdXY * Dimensions.Z;
+		Array.SetNumZeroed(DimensionsProduct);
 	}
+
+	/**
+	 * Constructor
+	 *
+	 * @param X - The X-dimension of the 3D array.
+	 * @param Y - The Y-dimension of the 3D array.
+	 * @param Z - The Z-dimension of the 3D array.
+	 * 
+	 * Caution - Will set dimensions to 1 if less than 1 is supplied.
+	 */
+	TArray3D(int32 X, int32 Y, int32 Z) : TArray3D(FIntVector(X,Y,Z)) {}
 
 	/** Copy constructor and assignment. */
-	FORCEINLINE TArray3D(const TArray3D<T>& Other) : TArray<T>(Other), _Dimensions(Other._Dimensions), _XY(Other._XY), _XYZ(Other._XYZ){}
+	FORCEINLINE TArray3D(const TArray3D<T>& Other) : Array(Other.Array), Dimensions(Other.Dimensions), ProdXY(Other.ProdXY), DimensionsProduct(Other.DimensionsProduct){}
 	TArray3D<T>& operator=(const TArray3D<T>& Other)
 	{
-		TArray<T>::operator=(Other);
-		_Dimensions = Other._Dimensions;
-		_XY = Other._XY;
-		_XYZ = Other._XYZ;
+		Array = Other.Array;
+		Dimensions = Other.Dimensions;
+		ProdXY = Other.ProdXY;
+		DimensionsProduct = Other.DimensionsProduct;
 	}
 
-	/** Move constructor and assignment. */
-	FORCEINLINE TArray3D(TArray3D<T>&& Other) : TArray<T>(MoveTemp(Other)), _Dimensions(MoveTemp(Other._Dimensions)), _XY(MoveTemp(Other._XY)), _XYZ(MoveTemp(Other._XYZ)) {}
-	TArray3D<T>& operator=(TArray3D<T>&& Other)
-	{
-		TArray<T>::operator=(MoveTemp(Other));
-		_Dimensions = MoveTemp(Other._Dimensions);
-		_XY = MoveTemp(Other._XY);
-		_XYZ = MoveTemp(Other._XYZ);
-	}
+	/** Delete Move constructor and assignment for now. Might be implemented in the future but right now their implementations aren't entirely clear. */
+	TArray3D(TArray3D<T>&& Other) = delete;
+	TArray3D<T>& operator=(TArray3D<T>&& Other) = delete;
 
 	/** Default destructor. */
-	virtual ~TArray3D() = default;
+	~TArray3D() = default;
 
+public:
 	/**
-	* Array bracket operator. Returns reference to element at given index.
+	* Array bracket operator. Returns reference to element at given 1D index.
 	*
+	* @param Index - 1D array index.
 	* @returns Reference to indexed element.
 	*/
-	FORCEINLINE T& operator[](SizeType Index)
+	FORCEINLINE T& operator[](int32 Index) const
 	{
-		return TArray<T>::operator[](Index);
+		return Array[Index];
 	}
 
 	/**
-	 * Array bracket operator. Returns reference to element at give index.
+	 * Array bracket operator. Returns reference to const element at given 1D index.
 	 *
-	 * Const version of the above.
+	 * @param Index - 1D array index.
+	 * @returns Reference to indexed element as const.
+	 */
+	FORCEINLINE const T& operator[](int32 Index) const
+	{
+		return Array[Index];
+	}
+
+	/**
+	 * Array bracket operator. Returns reference to element at given 3D index.
 	 *
+	 * @param Index - 3D array index.
 	 * @returns Reference to indexed element.
 	 */
-	FORCEINLINE const T& operator[](SizeType Index) const
+	FORCEINLINE T& operator[](FIntVector Index) const
 	{
-		return TArray<T>::operator[](Index);
+		DimensionCheck(Index);
+		return Array[GetIndexFromXYZ(Index)];
 	}
 
-	FORCEINLINE T& operator[](FIntVector XYZ)
+	/**
+	 * Array bracket operator. Returns reference to const element at given 3D index.
+	 *
+	 * @param Index - 3D array index.
+	 * @returns Reference to indexed element as const.
+	 */
+	FORCEINLINE const T& operator[](FIntVector Index) const
 	{
-		return operator[](GetIndexFromXYZ(XYZ.X, XYZ.Y, XYZ.Z));
-	}
-
-	FORCEINLINE const T& operator[](FIntVector XYZ) const
-	{
-		return operator[](GetIndexFromXYZ(XYZ.X, XYZ.Y, XYZ.Z));
-	}
-
-	FORCEINLINE SizeType GetIndexFromXYZ(SizeType X, SizeType Y, SizeType Z) const
-	{
-		return _XY * Z + _Dimensions.X * Y + X;
+		DimensionCheck(Index);
+		return Array[GetIndexFromXYZ(Index)];
 	}
 
 private:
-	FIntVector _Dimensions;
-	SizeType _XY;
-	SizeType _XYZ;
+	/**
+	 * Gets the 1D array index from a 3D array index.
+	 *
+	 * @param XYZ - An FIntVector with the X, Y and Z Index.
+	 * @returns The 1D array index or -1 (see Caution).
+	 *
+	 * Caution - If the 3D array index is out of the 3D dimensions, -1 is returned.
+	 */
+	FORCEINLINE int32 GetIndexFromXYZ(FIntVector XYZ) const
+	{
+		if (IndexWithinDimensions(Index))
+		{
+			return ProdXY * XYZ.Z + Dimensions.X * XYZ.Y + XYZ.X;
+		}
+		
+		return -1;
+	}
+
+	/**
+	 * Checks if the given 3D index is within the dimensions of the 3D Array.
+	 *
+	 * @param Index - 3D index to check.
+	 * @returns true if within the dimensions, otherwise false.
+	 */
+	FORCEINLINE bool IndexWithinDimensions(FIntVector Index) const
+	{
+		return	Index.X >= 0 && Index.X <= Dimensions.X &&
+				Index.Y >= 0 && Index.Y <= Dimensions.Y &&
+				Index.Z >= 0 && Index.Y <= Dimensions.Z;
+	}
+	
+	/**
+	 * Checks and returns valid dimensions.
+	 *
+	 * @param Dimensions - The dimensiosn to validate.
+	 * @returns valid dimensions.
+	 */
+	FORCEINLINE static FIntVector ValidateDimensions(FIntVector Dimensions)
+	{
+		return (Dimensions.X > 0 ? Dimensions.X : 1,
+				Dimensions.Y > 0 ? Dimensions.Y : 1,
+				Dimensions.Y > 0 ? Dimensions.Z : 1);
+	}
+	
+	/**
+	 * Check if Index is within dimensions, halting execution if fail.
+	 *
+	 * @param Index - The 3D index to check.
+	 */
+	FORCEINLINE void DimensionCheck(FIntVector Index) const
+	{
+		checkf(IndexWithinDimensions(Index), TEXT("Index out of bounds: %s out of %s"), *Index.ToString(), *Dimensions.ToString());
+	}
+
+private:
+	TArray<T> Array;				// The underlying 1D array that we use.
+	FIntVector Dimensions;			// The dimensions of the 3D array.
+	int32 ProdXY;					// The product of X and Y dimensions.
 };
