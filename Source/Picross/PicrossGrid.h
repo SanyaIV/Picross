@@ -4,7 +4,6 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "TArray3D.h"
 #include "PicrossGrid.generated.h"
 
 

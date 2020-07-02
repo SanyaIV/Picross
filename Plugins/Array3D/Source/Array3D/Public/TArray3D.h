@@ -2,173 +2,95 @@
 
 #pragma once
 
-#include "CoreTypes.h"
-#include "Templates/UnrealTypeTraits.h"
-#include "Containers/ContainerAllocationPolicies.h"
-#include "Containers/Array.h"
-#include "CoreGlobals.h"
+#include "HAL/Platform.h"
+#include "Math/IntVector.h"
 
-/**
- * A templated static three dimensional specialisation of the TArray class template. 
- *
- * Super-imposes X, Y and Z dimensions on the single-dimensional TArray, accessible by functions, not brackets. 
- * Follows C++ row-major meaning implemention is similar to [Z][Y][X]. 
- * Nest X loop within Y loop within Z loop to be the least cache unfriendly.
- *
- * Caution: The dimensions are const and can't be changed after creation.
- * Caution: Since the size is assumed to be constant, calling any non-const functions from the TArray class can corrupt the container.
- * Caution: Memory will leak if instance is deleted through TArray instead of TArray3D.
- *
- **/
-template<typename T>
-class TArray3D
+namespace Array3D
 {
-
-public:
-	/** Delete default constructor */
-	TArray3D() = delete;
-
 	/**
-	 * Constructor
-	 * @param Dimensions - The dimensions for the 3D array in X, Y and Z.
-	 *
-	 * Caution - Will set dimensions to 1 if less than 1 is supplied.
+	 * Converts a 3D Index (X,Y,Z) into a 1D Index.
+	 * @param DX - Size of the X-dimension.
+	 * @param DY - Size of the Y-dimension.
+	 * @param DZ - Size of the Z-dimension.
+	 * @param X - Index in the X-dimension.
+	 * @param Y - Index in the Y-dimension.
+	 * @param Z - Index in the Z-dimension.
+	 * @returns a 1D Index >= 0 and < Size(DX, DY, DZ).
 	 */
-	TArray3D(FIntVector Dimensions) : Array(), Dimensions(ValidateDimensions(Dimensions))
-	{
-		ProdXY = Dimensions.X * Dimensions.Y;
-		DimensionsProduct = ProdXY * Dimensions.Z;
-		Array.SetNumZeroed(DimensionsProduct);
-	}
-
+	int32 GetIndex(int32 DX, int32 DY, int32 DZ, int32 X, int32 Y, int32 Z);
 	/**
-	 * Constructor
-	 *
-	 * @param X - The X-dimension of the 3D array.
-	 * @param Y - The Y-dimension of the 3D array.
-	 * @param Z - The Z-dimension of the 3D array.
-	 * 
-	 * Caution - Will set dimensions to 1 if less than 1 is supplied.
+	 * Converts a 3D Index (X,Y,Z) into a 1D Index.
+	 * @param Dimensions - Size of the dimensions.
+	 * @param X - Index in the X-dimension.
+	 * @param Y - Index in the Y-dimension.
+	 * @param Z - Index in the Z-dimension.
+	 * @returns a 1D Index >= 0 and < Size(Dimensions).
 	 */
-	TArray3D(int32 X, int32 Y, int32 Z) : TArray3D(FIntVector(X,Y,Z)) {}
-
-	/** Copy constructor and assignment. */
-	FORCEINLINE TArray3D(const TArray3D<T>& Other) : Array(Other.Array), Dimensions(Other.Dimensions), ProdXY(Other.ProdXY), DimensionsProduct(Other.DimensionsProduct){}
-	TArray3D<T>& operator=(const TArray3D<T>& Other)
-	{
-		Array = Other.Array;
-		Dimensions = Other.Dimensions;
-		ProdXY = Other.ProdXY;
-		DimensionsProduct = Other.DimensionsProduct;
-	}
-
-	/** Default destructor. */
-	~TArray3D() = default;
-
-public:
+	int32 GetIndex(FIntVector Dimensions, int32 X, int32 Y, int32 Z);
 	/**
-	* Array bracket operator. Returns reference to element at given 1D index.
-	*
-	* @param Index - 1D array index.
-	* @returns Reference to indexed element.
-	*/
-	FORCEINLINE T& operator[](int32 Index) const
-	{
-		return Array[Index];
-	}
-
-	/**
-	 * Array bracket operator. Returns reference to const element at given 1D index.
-	 *
-	 * @param Index - 1D array index.
-	 * @returns Reference to indexed element as const.
+	 * Converts a 3D Index (X,Y,Z) into a 1D Index.
+	 * @param Dimensions - Size of the dimensions.
+	 * @param XYZ - Index in the 3D-dimensions.
+	 * @returns a 1D Index >= 0 and < Size(Dimensions).
 	 */
-	FORCEINLINE const T& operator[](int32 Index) const
-	{
-		return Array[Index];
-	}
+	int32 GetIndex(FIntVector Dimensions, FIntVector XYZ);
 
 	/**
-	 * Array bracket operator. Returns reference to element at given 3D index.
-	 *
-	 * @param Index - 3D array index.
-	 * @returns Reference to indexed element.
+	 * Converts a 1D Index into a 3D Index (X,Y,Z).
+	 * @param DX - Size of the X-dimension.
+	 * @param DY - Size of the Y-dimension.
+	 * @param DZ - Size of the Z-dimension.
+	 * @param I - 1D Index to convert to 3D Index.
+	 * @returns a 3D Index within the dimensions set by DX, DY & DZ.
 	 */
-	FORCEINLINE T& operator[](FIntVector Index) const
-	{
-		DimensionCheck(Index);
-		return Array[GetIndexFromXYZ(Index)];
-	}
+	FIntVector GetXYZ(int32 DX, int32 DY, int32 DZ, int32 I);
+	/**
+	 * Converts a 1D Index into a 3D Index (X,Y,Z).
+	 * @param Dimensions - Size of the dimensions.
+	 * @param I - 1D Index to convert to 3D Index.
+	 * @returns a 3D Index within Dimensions.
+	 */
+	FIntVector GetXYZ(FIntVector Dimensions, int32 I);
 
 	/**
-	 * Array bracket operator. Returns reference to const element at given 3D index.
-	 *
-	 * @param Index - 3D array index.
-	 * @returns Reference to indexed element as const.
+	 * Gets the Size of the 3D array as in the number of cells/elements.
+	 * @param DX - Size of the X-dimension.
+	 * @param DY - Size of the Y-dimension.
+	 * @param DZ - Size of the Z-dimension.
+	 * @returns DX*DY*DZ.
 	 */
-	FORCEINLINE const T& operator[](FIntVector Index) const
-	{
-		DimensionCheck(Index);
-		return Array[GetIndexFromXYZ(Index)];
-	}
-
-private:
+	int32 Size(int32 DX, int32 DY, int32 DZ);
 	/**
-	 * Gets the 1D array index from a 3D array index.
-	 *
-	 * @param XYZ - An FIntVector with the X, Y and Z Index.
-	 * @returns The 1D array index or -1 (see Caution).
-	 *
-	 * Caution - If the 3D array index is out of the 3D dimensions, -1 is returned.
+	 * Gets the Size of the 3D array as in the number of cells/elements.
+	 * @param Dimensions - Size of the dimensions.
+	 * @returns the product of all dimensions.
 	 */
-	FORCEINLINE int32 GetIndexFromXYZ(FIntVector XYZ) const
-	{
-		if (IndexWithinDimensions(Index))
-		{
-			return ProdXY * XYZ.Z + Dimensions.X * XYZ.Y + XYZ.X;
-		}
-		
-		return -1;
-	}
+	int32 Size(FIntVector Dimensions);
 
 	/**
-	 * Checks if the given 3D index is within the dimensions of the 3D Array.
-	 *
-	 * @param Index - 3D index to check.
-	 * @returns true if within the dimensions, otherwise false.
+	 * Validates the given dimensions, making sure they are all larger than 0.
+	 * @param DX - Size of the X-dimension.
+	 * @param DY - Size of the Y-dimension.
+	 * @param DZ - Size of the Z-dimension.
 	 */
-	FORCEINLINE bool IndexWithinDimensions(FIntVector Index) const
-	{
-		return	Index.X >= 0 && Index.X <= Dimensions.X &&
-				Index.Y >= 0 && Index.Y <= Dimensions.Y &&
-				Index.Z >= 0 && Index.Y <= Dimensions.Z;
-	}
-	
-	/**
-	 * Checks and returns valid dimensions.
-	 *
-	 * @param Dimensions - The dimensiosn to validate.
-	 * @returns valid dimensions.
-	 */
-	FORCEINLINE static FIntVector ValidateDimensions(FIntVector Dimensions)
-	{
-		return (Dimensions.X > 0 ? Dimensions.X : 1,
-				Dimensions.Y > 0 ? Dimensions.Y : 1,
-				Dimensions.Y > 0 ? Dimensions.Z : 1);
-	}
-	
-	/**
-	 * Check if Index is within dimensions, halting execution if fail.
-	 *
-	 * @param Index - The 3D index to check.
-	 */
-	FORCEINLINE void DimensionCheck(FIntVector Index) const
-	{
-		checkf(IndexWithinDimensions(Index), TEXT("Index out of bounds: %s out of %s"), *Index.ToString(), *Dimensions.ToString());
-	}
+	void ValidateDimensions(int32 DX, int32 DY, int32 DZ);
 
-private:
-	TArray<T> Array;				// The underlying 1D array that we use.
-	FIntVector Dimensions;			// The dimensions of the 3D array.
-	int32 ProdXY;					// The product of X and Y dimensions.
-};
+	/**
+	 * Makes sure the given index is within the dimensions.
+	 * @param DX - Size of the X-dimension.
+	 * @param DY - Size of the Y-dimension.
+	 * @param DZ - Size of the Z-dimension.
+	 * @param X - Index in the X-dimension.
+	 * @param Y - Index in the Y-dimension.
+	 * @param Z - Index in the Z-dimension.
+	 */
+	void IndexWithinDimensions(int32 DX, int32 DY, int32 DZ, int32 X, int32 Y, int32 Z);
+	/**
+	 * Makes sure the given index is within the 1D bounds of the dimension.
+	 * @param DX - Size of the X-dimension.
+	 * @param DY - Size of the Y-dimension.
+	 * @param DZ - Size of the Z-dimension.
+	 * @param I - 1D Index.
+	 */
+	void IndexWithinDimensions(int32 DX, int32 DY, int32 DZ, int32 I);
+}
