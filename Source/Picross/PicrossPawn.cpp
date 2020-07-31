@@ -3,8 +3,10 @@
 
 #include "Camera/CameraComponent.h"
 #include "Components/SphereComponent.h"
+#include "Engine/Classes/Kismet/GameplayStatics.h"
 #include "GameFramework/FloatingPawnMovement.h"
 #include "PicrossBlock.h"
+#include "PicrossGrid.h"
 #include "PicrossPawn.h"
 #include "PicrossPlayerController.h"
 
@@ -24,6 +26,14 @@ APicrossPawn::APicrossPawn()
 	MovementComponent = CreateDefaultSubobject<UFloatingPawnMovement>(TEXT("Movement Component"));
 }
 
+void APicrossPawn::BeginPlay()
+{
+	Super::BeginPlay();
+
+	PicrossGrid = Cast<APicrossGrid>(UGameplayStatics::GetActorOfClass(GetWorld(), APicrossGrid::StaticClass()));
+	ensureMsgf(PicrossGrid, TEXT("PicrossPawn couldn't find any PicrossGrid."));
+}
+
 // Called to bind functionality to input
 void APicrossPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
@@ -32,6 +42,9 @@ void APicrossPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	// Actions
 	PlayerInputComponent->BindAction("Darken Block", EInputEvent::IE_Pressed, this, &APicrossPawn::DarkenBlock);
 	PlayerInputComponent->BindAction("Cross Block", EInputEvent::IE_Pressed, this, &APicrossPawn::CrossBlock);
+	PlayerInputComponent->BindAction("Move Selection Up", EInputEvent::IE_Pressed, this, &APicrossPawn::MoveSelectionUp);
+	PlayerInputComponent->BindAction("Move Selection Down", EInputEvent::IE_Pressed, this, &APicrossPawn::MoveSelectionDown);
+	PlayerInputComponent->BindAction("Cycle Selection Rotation", EInputEvent::IE_Pressed, this, &APicrossPawn::CycleSelectionRotation);
 
 	// Rotation
 	PlayerInputComponent->BindAxis("Rotate Pitch", this, &APawn::AddControllerPitchInput);
@@ -76,6 +89,25 @@ void APicrossPawn::CrossBlock()
 	{
 		Block->CrossBlock();
 	}
+}
+
+void APicrossPawn::CycleSelectionRotation()
+{
+	APicrossBlock* Block = GetPicrossBlockInView();
+	if (Block)
+	{
+		PicrossGrid->Cycle2DRotation(Block);
+	}
+}
+
+void APicrossPawn::MoveSelectionUp()
+{
+	PicrossGrid->Move2DSelectionUp();
+}
+
+void APicrossPawn::MoveSelectionDown()
+{
+	PicrossGrid->Move2DSelectionDown();
 }
 
 void APicrossPawn::MoveForward(float Value)

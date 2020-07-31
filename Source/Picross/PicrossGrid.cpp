@@ -104,7 +104,7 @@ void APicrossGrid::DestroyGrid()
 
 void APicrossGrid::Cycle2DRotation(const APicrossBlock* PivotBlock)
 {
-	SelectionAxis = (SelectionAxis == ESelectionAxis::Z ? ESelectionAxis::Y : SelectionAxis == ESelectionAxis::Y ? ESelectionAxis::X : ESelectionAxis::Z);
+	SelectionAxis = (SelectionAxis == ESelectionAxis::All ? ESelectionAxis::Z : SelectionAxis == ESelectionAxis::Z ? ESelectionAxis::Y : SelectionAxis == ESelectionAxis::Y ? ESelectionAxis::X : ESelectionAxis::All);
 
 	if (PivotBlock)
 	{
@@ -115,7 +115,7 @@ void APicrossGrid::Cycle2DRotation(const APicrossBlock* PivotBlock)
 		case X:		SetRotationXAxis(PivotIndex);	break;
 		case Y:		SetRotationYAxis(PivotIndex);	break;
 		case Z:		SetRotationZAxis(PivotIndex);	break;
-		default:	SetRotationZAxis(PivotIndex);	break;
+		default:	EnableAllBlocks();	break;
 		}
 	}
 }
@@ -195,15 +195,15 @@ void APicrossGrid::Move2DSelectionUp()
 	switch (SelectionAxis)
 	{
 	case X:
-		LastPivotXYZ.X = LastPivotXYZ.X < GridSize.X ? LastPivotXYZ.X + 1 : 0;
+		LastPivotXYZ.X = LastPivotXYZ.X < GridSize.X - 1 ? LastPivotXYZ.X + 1 : 0;
 		SetRotationXAxis(FArray3D::TranslateTo1D(GridSize, LastPivotXYZ));
 		break;
 	case Y:
-		LastPivotXYZ.Y = LastPivotXYZ.Y < GridSize.Y ? LastPivotXYZ.Y + 1 : 0;
+		LastPivotXYZ.Y = LastPivotXYZ.Y < GridSize.Y - 1 ? LastPivotXYZ.Y + 1 : 0;
 		SetRotationYAxis(FArray3D::TranslateTo1D(GridSize, LastPivotXYZ));
 		break;
 	case Z:
-		LastPivotXYZ.Z = LastPivotXYZ.Z < GridSize.Z ? LastPivotXYZ.Z + 1 : 0;
+		LastPivotXYZ.Z = LastPivotXYZ.Z < GridSize.Z - 1 ? LastPivotXYZ.Z + 1 : 0;
 		SetRotationZAxis(FArray3D::TranslateTo1D(GridSize, LastPivotXYZ));
 		break;
 	}
@@ -214,15 +214,15 @@ void APicrossGrid::Move2DSelectionDown()
 	switch (SelectionAxis)
 	{
 	case X:
-		LastPivotXYZ.X = LastPivotXYZ.X > 0 ? LastPivotXYZ.X - 1 : GridSize.X;
+		LastPivotXYZ.X = LastPivotXYZ.X > 0 ? LastPivotXYZ.X - 1 : GridSize.X - 1;
 		SetRotationXAxis(FArray3D::TranslateTo1D(GridSize, LastPivotXYZ));
 		break;
 	case Y:
-		LastPivotXYZ.Y = LastPivotXYZ.Y > 0 ? LastPivotXYZ.Y - 1 : GridSize.Y;
+		LastPivotXYZ.Y = LastPivotXYZ.Y > 0 ? LastPivotXYZ.Y - 1 : GridSize.Y - 1;
 		SetRotationYAxis(FArray3D::TranslateTo1D(GridSize, LastPivotXYZ));
 		break;
 	case Z:
-		LastPivotXYZ.Z = LastPivotXYZ.Z > 0 ? LastPivotXYZ.Z - 1 : GridSize.Z;
+		LastPivotXYZ.Z = LastPivotXYZ.Z > 0 ? LastPivotXYZ.Z - 1 : GridSize.Z - 1;
 		SetRotationZAxis(FArray3D::TranslateTo1D(GridSize, LastPivotXYZ));
 		break;
 	}

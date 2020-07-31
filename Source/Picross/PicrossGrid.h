@@ -12,7 +12,8 @@ enum ESelectionAxis
 {
 	Z	UMETA(DisplayName = "Z"),
 	Y	UMETA(DisplayName = "Y"),
-	X	UMETA(DisplayName = "X")
+	X	UMETA(DisplayName = "X"),
+	All UMETA(DisplayName = "All")
 };
 
 /**
@@ -64,6 +65,6 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Picross", meta = (AllowPrivateAccess = "true"))
 	float DistanceBetweenBlocks = 110.f;
 
-	ESelectionAxis SelectionAxis = ESelectionAxis::Z;
+	ESelectionAxis SelectionAxis = ESelectionAxis::All;
 	FIntVector LastPivotXYZ = FIntVector::ZeroValue;
 };
