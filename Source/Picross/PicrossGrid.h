@@ -33,7 +33,8 @@ public:
 	void DestroyGrid();
 
 	void Cycle2DRotation(const class APicrossBlock* PivotBlock);
-	void Move2DSelection() const;
+	void Move2DSelectionUp();
+	void Move2DSelectionDown();
 
 	UFUNCTION(BlueprintCallable, CallInEditor, Category = "Picross")
 	void SavePuzzle() const;
@@ -43,10 +44,10 @@ protected:
 	virtual void BeginPlay() override;
 
 private:
-	FVector GetLocationForBlockCreation(int32 Index) const;
-	void SetRotationXAxis(int32 PivotIndex) const;
-	void SetRotationYAxis(int32 PivotIndex) const;
-	void SetRotationZAxis(int32 PivotIndex) const;
+	void SetRotationXAxis(int32 PivotIndex);
+	void SetRotationYAxis(int32 PivotIndex);
+	void SetRotationZAxis(int32 PivotIndex);
+	void EnableAllBlocks() const;
 	void DisableAllBlocks() const;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Picross", meta = (AllowPrivateAccess = "true"))
@@ -64,4 +65,5 @@ private:
 	float DistanceBetweenBlocks = 110.f;
 
 	ESelectionAxis SelectionAxis = ESelectionAxis::Z;
+	FIntVector LastPivotXYZ = FIntVector::ZeroValue;
 };

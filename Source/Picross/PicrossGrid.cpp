@@ -9,6 +9,7 @@
 #include "PicrossGrid.h"
 #include "PicrossPuzzleData.h"
 #include "PicrossPuzzleFactory.h"
+#include "FArray3D.h"
 
 // Sets default values
 APicrossGrid::APicrossGrid()
@@ -24,7 +25,6 @@ void APicrossGrid::BeginPlay()
 	Super::BeginPlay();
 	
 	CreateGrid(DefaultGridSize);
-	SetRotationZAxis(0);
 }
 
 bool APicrossGrid::ValidateGridSize(FIntVector WantedGridSize) const
@@ -34,73 +34,48 @@ bool APicrossGrid::ValidateGridSize(FIntVector WantedGridSize) const
 
 void APicrossGrid::CreateGrid(FIntVector WantedGridSize)
 {
-	if (!ValidateGridSize(WantedGridSize))
-	{
-		UE_LOG(LogTemp, Error, TEXT("Invalid grid size: %s"), *WantedGridSize.ToString())
-		return;
-	}
-	else
-	{
-		GridSize = WantedGridSize;
-	}
+	verify(FArray3D::ValidateDimensions(WantedGridSize));
+
+	GridSize = WantedGridSize;
 
 	if (PicrossGrid.Num() > 0)
 	{
 		DestroyGrid();
 	}
 
-	for (int32 i = 0; i < GridSize.Y * GridSize.X * GridSize.Z; ++i)
-	{
-		FVector Location = GetLocationForBlockCreation(i);
-		int32 Index = PicrossGrid.Add(GetWorld()->SpawnActor<APicrossBlock>(PicrossBlockBP, Location, GetActorRotation()));
-		if (PicrossGrid[Index])
-		{
-			PicrossGrid[Index]->SetIndexInGrid(Index);
-		}
-	}
-}
+	PicrossGrid.SetNumZeroed(FArray3D::Size(GridSize));
 
-FVector APicrossGrid::GetLocationForBlockCreation(int32 Index) const
-{
-	const int32 GridSizeXY = GridSize.X * GridSize.Y;
-	FVector Location = FVector::ZeroVector;
-	if (Index == 0) // Place the first block in the top left corner of the bottom-most 2D grid so that the grid actor is in the middle of the bottom-most grid.
-	{
-		const float OffsetX = DistanceBetweenBlocks * (GridSize.X / 2) - (GridSize.X % 2 == 0 ? DistanceBetweenBlocks / 2 : 0); // Get the offset for the first block in Y-axis.
-		const float OffsetY = DistanceBetweenBlocks * (GridSize.Y / 2) - (GridSize.Y % 2 == 0 ? DistanceBetweenBlocks / 2 : 0); // Get the offset for the first block in X-axis.
-		Location = GetActorLocation();
-		Location -= GetActorRightVector() * OffsetY;
-		Location -= GetActorForwardVector() * OffsetX;
-	}
-	else if (PicrossGrid.IsValidIndex((Index % GridSizeXY == 0 ? Index - GridSizeXY : Index % GridSize.Y == 0 ? Index - GridSize.Y : Index - 1))) // Find the index we intend to check and check if it's valid.
-	{
-		// Order of operation here is important.
-		if (Index % GridSizeXY == 0 && PicrossGrid[Index - GridSizeXY] != nullptr) // First check if the index is the first block in a new 2D array layer.
-		{
-			APicrossBlock* Block = PicrossGrid[Index - GridSizeXY];
-			Location = Block->GetActorLocation() + Block->GetActorUpVector() * DistanceBetweenBlocks;
-		}
-		else if (Index % GridSize.X == 0 && PicrossGrid[Index - GridSize.X] != nullptr) // Second check if the index is the first block in a row in a 2D array layer
-		{
-			APicrossBlock* Block = PicrossGrid[Index - GridSize.X];
-			Location = Block->GetActorLocation() + Block->GetActorRightVector() * DistanceBetweenBlocks;
-		}
-		else if (PicrossGrid[Index - 1] != nullptr) // If neither of the previous checks were true it should be an index in the middle of a row.
-		{
-			APicrossBlock* Block = PicrossGrid[Index - 1];
-			Location = Block->GetActorLocation() + Block->GetActorForwardVector() * DistanceBetweenBlocks;
-		}
-		else // If none of the previous checks were true then we had the index but the pointer at that index poitned to nullptr which should never happen.
-		{
-			UE_LOG(LogTemp, Error, TEXT("PicrossGrid contained nullptr!"))
-		}
-	}
-	else
-	{
-		UE_LOG(LogTemp, Error, TEXT("Grid attempted to get location for a block out-of-bounds! %i %i"), PicrossGrid.Num(), Index)
-	}
+	FVector StartPosition = GetActorLocation();
+	StartPosition -= GetActorRightVector() * (DistanceBetweenBlocks * (GridSize.Y / 2) - (GridSize.Y % 2 == 0 ? DistanceBetweenBlocks / 2 : 0));
+	StartPosition -= GetActorForwardVector() * (DistanceBetweenBlocks * (GridSize.X / 2) - (GridSize.X % 2 == 0 ? DistanceBetweenBlocks / 2 : 0));
 
-	return Location;
+	for (int32 Z = 0; Z < GridSize.Z; ++Z)
+	{
+		float OffsetZ = DistanceBetweenBlocks * Z;
+		for (int32 Y = 0; Y < GridSize.Y; ++Y)
+		{
+			float OffsetY = DistanceBetweenBlocks * Y;
+			for (int32 X = 0; X < GridSize.X; ++X)
+			{
+				float OffsetX = DistanceBetweenBlocks * X;
+				FVector BlockPosition = StartPosition;
+				BlockPosition += GetActorForwardVector() * OffsetX;
+				BlockPosition += GetActorRightVector() * OffsetY;
+				BlockPosition += GetActorUpVector() * OffsetZ;
+
+				int32 Index = FArray3D::TranslateTo1D(GridSize, X, Y, Z);
+				if (PicrossGrid.IsValidIndex(Index))
+				{
+					PicrossGrid[Index] = GetWorld()->SpawnActor<APicrossBlock>(PicrossBlockBP, BlockPosition, GetActorRotation());
+					if (PicrossGrid[Index])
+					{
+						PicrossGrid[Index]->SetIndexInGrid(Index);
+					}
+				}
+				
+			}
+		}
+	}
 }
 
 void APicrossGrid::ClearGrid() const
@@ -145,57 +120,65 @@ void APicrossGrid::Cycle2DRotation(const APicrossBlock* PivotBlock)
 	}
 }
 
-void APicrossGrid::SetRotationXAxis(int32 PivotIndex) const
+void APicrossGrid::SetRotationXAxis(int32 PivotIndex)
 {
 	DisableAllBlocks();
 
-	int32 StartIndex = PivotIndex % GridSize.X;
-	int32 EndIndex = StartIndex + ((GridSize.Y * GridSize.Z) - 1) * GridSize.X;
-
-	for (int32 i = StartIndex; i <= EndIndex; i += GridSize.X)
+	LastPivotXYZ = FArray3D::TranslateTo3D(GridSize, PivotIndex);
+	for (int32 Z = 0; Z < GridSize.Z; ++Z)
 	{
-		if (PicrossGrid.IsValidIndex(i) && PicrossGrid[i])
+		for (int32 Y = 0; Y < GridSize.Y; ++Y)
 		{
-			PicrossGrid[i]->SetEnabled(true);
-		}
-	}
-}
-
-void APicrossGrid::SetRotationYAxis(int32 PivotIndex) const
-{
-	DisableAllBlocks();
-
-	int32 XY = GridSize.X * GridSize.Y;
-	int32 LeftMostBlockInRowIndex = PivotIndex - PivotIndex % GridSize.X;
-	int32 IndexesToStartIndex = FMath::FloorToInt(static_cast<float>(LeftMostBlockInRowIndex) / XY) * XY;
-	int32 StartIndex = LeftMostBlockInRowIndex - IndexesToStartIndex;
-
-	for (int32 i = 0; i < GridSize.Z; ++i)
-	{
-		for (int32 j = StartIndex + XY * i; j < (StartIndex + XY * i) + GridSize.X; ++j)
-		{
-			if (PicrossGrid.IsValidIndex(j) && PicrossGrid[j])
+			int32 Index = FArray3D::TranslateTo1D(GridSize, LastPivotXYZ.X, Y, Z);
+			if (PicrossGrid.IsValidIndex(Index) && PicrossGrid[Index])
 			{
-				PicrossGrid[j]->SetEnabled(true);
+				PicrossGrid[Index]->SetEnabled(true);
 			}
 		}
 	}
 }
 
-void APicrossGrid::SetRotationZAxis(int32 PivotIndex) const
+void APicrossGrid::SetRotationYAxis(int32 PivotIndex)
 {
 	DisableAllBlocks();
 
-	int32 XY = GridSize.X * GridSize.Y;
-	int32 StartIndex = FMath::FloorToInt(static_cast<float>(PivotIndex) / XY) * XY;
-	int32 EndIndex = StartIndex + XY - 1;
-
-	for (int32 i = StartIndex; i <= EndIndex; ++i)
+	LastPivotXYZ = FArray3D::TranslateTo3D(GridSize, PivotIndex);
+	for (int32 Z = 0; Z < GridSize.Z; ++Z)
 	{
-		if (PicrossGrid.IsValidIndex(i) && PicrossGrid[i])
+		for (int32 X = 0; X < GridSize.X; ++X)
 		{
-			PicrossGrid[i]->SetEnabled(true);
+			int32 Index = FArray3D::TranslateTo1D(GridSize, X, LastPivotXYZ.Y, Z);
+			if (PicrossGrid.IsValidIndex(Index) && PicrossGrid[Index])
+			{
+				PicrossGrid[Index]->SetEnabled(true);
+			}
 		}
+	}
+}
+
+void APicrossGrid::SetRotationZAxis(int32 PivotIndex)
+{
+	DisableAllBlocks();
+
+	LastPivotXYZ = FArray3D::TranslateTo3D(GridSize, PivotIndex);
+	for (int32 Y = 0; Y < GridSize.Y; ++Y)
+	{
+		for (int32 X = 0; X < GridSize.X; ++X)
+		{
+			int32 Index = FArray3D::TranslateTo1D(GridSize, X, Y, LastPivotXYZ.Z);
+			if (PicrossGrid.IsValidIndex(Index) && PicrossGrid[Index])
+			{
+				PicrossGrid[Index]->SetEnabled(true);
+			}
+		}
+	}
+}
+
+void APicrossGrid::EnableAllBlocks() const
+{
+	for (APicrossBlock* Block : PicrossGrid)
+	{
+		Block->SetEnabled(true);
 	}
 }
 
@@ -207,9 +190,42 @@ void APicrossGrid::DisableAllBlocks() const
 	}
 }
 
-void APicrossGrid::Move2DSelection() const
+void APicrossGrid::Move2DSelectionUp()
 {
-	// TODO: Implement function
+	switch (SelectionAxis)
+	{
+	case X:
+		LastPivotXYZ.X = LastPivotXYZ.X < GridSize.X ? LastPivotXYZ.X + 1 : 0;
+		SetRotationXAxis(FArray3D::TranslateTo1D(GridSize, LastPivotXYZ));
+		break;
+	case Y:
+		LastPivotXYZ.Y = LastPivotXYZ.Y < GridSize.Y ? LastPivotXYZ.Y + 1 : 0;
+		SetRotationYAxis(FArray3D::TranslateTo1D(GridSize, LastPivotXYZ));
+		break;
+	case Z:
+		LastPivotXYZ.Z = LastPivotXYZ.Z < GridSize.Z ? LastPivotXYZ.Z + 1 : 0;
+		SetRotationZAxis(FArray3D::TranslateTo1D(GridSize, LastPivotXYZ));
+		break;
+	}
+}
+
+void APicrossGrid::Move2DSelectionDown()
+{
+	switch (SelectionAxis)
+	{
+	case X:
+		LastPivotXYZ.X = LastPivotXYZ.X > 0 ? LastPivotXYZ.X - 1 : GridSize.X;
+		SetRotationXAxis(FArray3D::TranslateTo1D(GridSize, LastPivotXYZ));
+		break;
+	case Y:
+		LastPivotXYZ.Y = LastPivotXYZ.Y > 0 ? LastPivotXYZ.Y - 1 : GridSize.Y;
+		SetRotationYAxis(FArray3D::TranslateTo1D(GridSize, LastPivotXYZ));
+		break;
+	case Z:
+		LastPivotXYZ.Z = LastPivotXYZ.Z > 0 ? LastPivotXYZ.Z - 1 : GridSize.Z;
+		SetRotationZAxis(FArray3D::TranslateTo1D(GridSize, LastPivotXYZ));
+		break;
+	}
 }
 
 void APicrossGrid::SavePuzzle() const
