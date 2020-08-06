@@ -19,9 +19,11 @@ public:
 	TArray<bool> GetPicrossSolution() const;
 	bool CheckIndex(int32 Index) const;
 	bool ValidatePuzzle() const;
+
+	virtual FPrimaryAssetId GetPrimaryAssetId() const override;
 	
 private:
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Picross", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Picross", AssetRegistrySearchable, meta = (AllowPrivateAccess = "true"))
 	FIntVector GridSize;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Picross", meta = (AllowPrivateAccess = "true"))

@@ -39,6 +39,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, CallInEditor, Category = "Picross")
 	void SavePuzzle() const;
+	UFUNCTION(BlueprintCallable, Category = "Picross")
+	bool LoadPuzzle(); 
 
 protected:
 	// Called when the game starts or when spawned
@@ -51,6 +53,9 @@ private:
 	void EnableAllBlocks() const;
 	void DisableAllBlocks() const;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Picross", meta = (AllowPrivateAccess = "true"))
+	class UPicrossPuzzleData* CurrentPuzzle = nullptr;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Picross", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<class APicrossBlock> PicrossBlockBP;
 
@@ -60,7 +65,7 @@ private:
 	FIntVector GridSize = FIntVector::ZeroValue;
 
 	UPROPERTY(EditAnywhere, Category = "Picross", meta = (AllowPrivateAccess = "true"))
-	FIntVector DefaultGridSize {5,5,1};
+	FIntVector DefaultGridSize {5,5,5};
 
 	UPROPERTY(EditAnywhere, Category = "Picross", meta = (AllowPrivateAccess = "true"))
 	float DistanceBetweenBlocks = 110.f;

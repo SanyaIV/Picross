@@ -34,6 +34,15 @@ bool UPicrossPuzzleData::ValidatePuzzle() const
 			return true;
 		}
 	}
-	
+
 	return false;
+}
+
+FPrimaryAssetId UPicrossPuzzleData::GetPrimaryAssetId() const
+{
+	FPrimaryAssetId AssetId;
+	AssetId.PrimaryAssetName = GetFName();
+	AssetId.PrimaryAssetType = TEXT("PicrossPuzzleData");
+
+	return AssetId;
 }

@@ -1,6 +1,7 @@
 // Copyright Sanya Larsson 2020
 
 
+#include "Engine/AssetManager.h"
 #include "Engine/Engine.h"
 #include "IAssetTools.h"
 #include "AssetToolsModule.h"
@@ -24,7 +25,14 @@ void APicrossGrid::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	CreateGrid(DefaultGridSize);
+	if (LoadPuzzle())
+	{
+		CreateGrid(CurrentPuzzle->GetGridSize());
+	}
+	else
+	{
+		CreateGrid(DefaultGridSize);
+	}
 }
 
 bool APicrossGrid::ValidateGridSize(FIntVector WantedGridSize) const
@@ -239,4 +247,24 @@ void APicrossGrid::SavePuzzle() const
 	TArray<UObject*> ObjectsToSync;
 	ObjectsToSync.Add(NewAsset);
 	GEditor->SyncBrowserToObjects(ObjectsToSync);
+}
+
+bool APicrossGrid::LoadPuzzle()
+{
+	UObjectLibrary* ObjectLibrary = nullptr;
+	if (!ObjectLibrary)
+	{
+		UAssetManager& AssetManager = UAssetManager::Get();
+		TArray<FAssetData> AssetDatas;
+		AssetManager.GetPrimaryAssetDataList(TEXT("PicrossPuzzleData"), AssetDatas);
+		UE_LOG(LogTemp, Warning, TEXT("Found %d puzzles"), AssetDatas.Num())
+		
+		for (FAssetData AssetData : AssetDatas)
+		{
+			CurrentPuzzle = Cast<UPicrossPuzzleData>(AssetData.GetAsset());
+			if (CurrentPuzzle) return true;
+		}
+	}
+
+	return false;
 }
