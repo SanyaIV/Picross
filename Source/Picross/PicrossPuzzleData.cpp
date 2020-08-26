@@ -8,9 +8,19 @@ FIntVector UPicrossPuzzleData::GetGridSize() const
 	return GridSize;
 }
 
+void UPicrossPuzzleData::SetGridSize(FIntVector NewGridSize)
+{
+	GridSize = NewGridSize;
+}
+
 const TArray<bool>& UPicrossPuzzleData::GetSolution() const
 {
 	return PicrossSolution;
+}
+
+void UPicrossPuzzleData::SetSolution(const TArray<bool> Solution)
+{
+	PicrossSolution = Solution;
 }
 
 bool UPicrossPuzzleData::CheckIndex(int32 Index) const

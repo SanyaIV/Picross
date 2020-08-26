@@ -25,26 +25,14 @@ void APicrossGrid::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	if (LoadPuzzle())
-	{
-		CreateGrid(CurrentPuzzle->GetGridSize());
-	}
-	else
-	{
-		CreateGrid(DefaultGridSize);
-	}
+	LoadPuzzle();
+	CreateGrid();
 }
 
-bool APicrossGrid::ValidateGridSize(FIntVector WantedGridSize) const
+void APicrossGrid::CreateGrid()
 {
-	return WantedGridSize.X > 0 && WantedGridSize.Y > 0 && WantedGridSize.Z > 0;
-}
-
-void APicrossGrid::CreateGrid(FIntVector WantedGridSize)
-{
-	verify(FArray3D::ValidateDimensions(WantedGridSize));
-
-	GridSize = WantedGridSize;
+	GridSize = CurrentPuzzle ? CurrentPuzzle->GetGridSize() : DefaultGridSize;
+	verify(FArray3D::ValidateDimensions(GridSize));
 
 	if (PicrossGrid.Num() > 0)
 	{
@@ -84,6 +72,8 @@ void APicrossGrid::CreateGrid(FIntVector WantedGridSize)
 			}
 		}
 	}
+
+	GenerateNumbers();
 }
 
 void APicrossGrid::ClearGrid() const
@@ -108,6 +98,82 @@ void APicrossGrid::DestroyGrid()
 	}
 
 	PicrossGrid.Empty();
+}
+
+void APicrossGrid::GenerateNumbers() const
+{
+	if (!CurrentPuzzle) return;
+
+	const TArray<bool>& Solution = CurrentPuzzle->GetSolution();
+
+	// Generate numbers for X-axis
+	for (int32 Y = 0; Y < GridSize.Y; ++Y)
+	{
+		for (int32 Z = 0; Z < GridSize.Z; ++Z)
+		{
+			TArray<int32> Numbers;
+			int32 Sum = 0;
+
+			for (int32 X = 0; X < GridSize.X; ++X)
+			{
+				if (Solution[FArray3D::TranslateTo1D(GridSize, X, Y, Z)])
+				{
+					++Sum;
+				}
+				else if (Sum > 0)
+				{
+					Numbers.Add(Sum);
+					Sum = 0;
+				}
+			}
+		}
+	}
+
+	// Generate numbers for Y-axis
+	for (int32 X = 0; X < GridSize.X; ++X)
+	{
+		for (int32 Z = 0; Z < GridSize.Z; ++Z)
+		{
+			TArray<int32> Numbers;
+			int32 Sum = 0;
+
+			for (int32 Y = 0; Y < GridSize.Y; ++Y)
+			{
+				if (Solution[FArray3D::TranslateTo1D(GridSize, X, Y, Z)])
+				{
+					++Sum;
+				}
+				else if (Sum > 0)
+				{
+					Numbers.Add(Sum);
+					Sum = 0;
+				}
+			}
+		}
+	}
+
+	// Generate numbers for Z-axis
+	for (int32 X = 0; X < GridSize.X; ++X)
+	{
+		for (int32 Y = 0; Y < GridSize.Y; ++Y)
+		{
+			TArray<int32> Numbers;
+			int32 Sum = 0;
+
+			for (int32 Z = GridSize.Z - 1; Z >= 0; --Z)
+			{
+				if (Solution[FArray3D::TranslateTo1D(GridSize, X, Y, Z)])
+				{
+					++Sum;
+				}
+				else if (Sum > 0)
+				{
+					Numbers.Add(Sum);
+					Sum = 0;
+				}
+			}
+		}
+	}
 }
 
 void APicrossGrid::Cycle2DRotation(const APicrossBlock* PivotBlock)
@@ -256,7 +322,18 @@ void APicrossGrid::Move2DSelectionDown()
 
 void APicrossGrid::SavePuzzle() const
 {
+	if (!FArray3D::ValidateDimensions(GridSize)) return;
+
+	TArray<bool> Solution;
+	for (APicrossBlock* Block : PicrossGrid)
+	{
+		Solution.Add(Block->IsFilled());
+	}
+
 	UPicrossPuzzleData* ExistingObject = NewObject<UPicrossPuzzleData>();
+	ExistingObject->SetGridSize(GridSize);
+	ExistingObject->SetSolution(Solution);
+
 	UPicrossPuzzleFactory* NewFactory = NewObject<UPicrossPuzzleFactory>();
 	NewFactory->CreatedObjectAsset = ExistingObject;
 	

@@ -26,7 +26,7 @@ protected:
 	class APicrossBlock* GetPicrossBlockInView() const;
 	
 	// Picross Actions
-	void DarkenBlock();
+	void FillBlock();
 	void CrossBlock();
 	void CycleSelectionRotation();
 	void MoveSelectionUp();

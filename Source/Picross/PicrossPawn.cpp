@@ -40,7 +40,7 @@ void APicrossPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
 	// Actions
-	PlayerInputComponent->BindAction("Darken Block", EInputEvent::IE_Pressed, this, &APicrossPawn::DarkenBlock);
+	PlayerInputComponent->BindAction("Fill Block", EInputEvent::IE_Pressed, this, &APicrossPawn::FillBlock);
 	PlayerInputComponent->BindAction("Cross Block", EInputEvent::IE_Pressed, this, &APicrossPawn::CrossBlock);
 	PlayerInputComponent->BindAction("Move Selection Up", EInputEvent::IE_Pressed, this, &APicrossPawn::MoveSelectionUp);
 	PlayerInputComponent->BindAction("Move Selection Down", EInputEvent::IE_Pressed, this, &APicrossPawn::MoveSelectionDown);
@@ -73,12 +73,12 @@ APicrossBlock* APicrossPawn::GetPicrossBlockInView() const
 	return BlockToReturn;
 }
 
-void APicrossPawn::DarkenBlock()
+void APicrossPawn::FillBlock()
 {
 	APicrossBlock* Block = GetPicrossBlockInView();
 	if (Block)
 	{
-		Block->DarkenBlock();
+		Block->FillBlock();
 	}
 }
 

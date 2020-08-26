@@ -28,7 +28,7 @@ public:
 
 	void SetEnabled(bool bEnabled);
 
-	void DarkenBlock();
+	void FillBlock();
 	void CrossBlock();
 	void ClearBlock();
 	bool IsFilled() const;

@@ -29,7 +29,7 @@ void APicrossBlock::SetEnabled(bool bEnabled)
 	SetActorEnableCollision(bEnabled);
 }
 
-void APicrossBlock::DarkenBlock()
+void APicrossBlock::FillBlock()
 {
 	State = State == EBlockState::Filled ? EBlockState::Clear : EBlockState::Filled;
 	UpdateMaterial();

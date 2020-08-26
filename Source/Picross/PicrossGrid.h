@@ -28,10 +28,12 @@ public:
 	// Sets default values for this actor's properties
 	APicrossGrid();
 
-	bool ValidateGridSize(FIntVector WantedGridSize) const;
-	void CreateGrid(FIntVector WantedGridSize);
+	UFUNCTION(BlueprintCallable, CallInEditor, Category = "Picross")
+	void CreateGrid();
+	UFUNCTION(BlueprintCallable, CallInEditor, Category = "Picross")
 	void ClearGrid() const;
 	void DestroyGrid();
+	void GenerateNumbers() const;
 
 	void Cycle2DRotation(const class APicrossBlock* PivotBlock);
 	void Move2DSelectionUp();
