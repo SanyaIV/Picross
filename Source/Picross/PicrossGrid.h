@@ -52,6 +52,7 @@ private:
 	void SetRotationZAxis(int32 PivotIndex);
 	void EnableAllBlocks() const;
 	void DisableAllBlocks() const;
+	bool IsSolved() const;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Picross", meta = (AllowPrivateAccess = "true"))
 	class UPicrossPuzzleData* CurrentPuzzle = nullptr;
@@ -62,7 +63,7 @@ private:
 	// A 3D array implemented in a 1D array. Functions handle the 3D aspect of it.
 	UPROPERTY(VisibleAnywhere, Category = "Picross")
 	TArray<class APicrossBlock*> PicrossGrid;
-	FIntVector GridSize = FIntVector::ZeroValue;
+	FIntVector GridSize = FIntVector::ZeroValue; // TODO: Remove and replace with gridsize from CurrentPuzzle.
 
 	UPROPERTY(EditAnywhere, Category = "Picross", meta = (AllowPrivateAccess = "true"))
 	FIntVector DefaultGridSize {5,5,5};

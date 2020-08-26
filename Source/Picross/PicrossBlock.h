@@ -6,6 +6,14 @@
 #include "GameFramework/Actor.h"
 #include "PicrossBlock.generated.h"
 
+UENUM()
+enum EBlockState
+{
+	Clear		UMETA(DisplayName = "Clear"),
+	Crossed		UMETA(DisplayName = "Crossed"),
+	Filled		UMETA(DisplayName = "Filled")
+};
+
 /**
  * The Picross Block
  */
@@ -20,10 +28,10 @@ public:
 
 	void SetEnabled(bool bEnabled);
 
-	void DarkenBlock() const;
-	void CrossBlock() const;
-	void ResetBlock() const;
-	bool IsDarkened() const;
+	void DarkenBlock();
+	void CrossBlock();
+	void ClearBlock();
+	bool IsFilled() const;
 
 	void SetIndexInGrid(int32 IndexToSet);
 	int32 GetIndexInGrid() const;
@@ -32,15 +40,15 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+	void UpdateMaterial() const;
+
 private:
+	EBlockState State = EBlockState::Clear;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Block", meta = (AllowPrivateAccess = "true"))
 	class UStaticMeshComponent* BlockMesh = nullptr;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Block", meta = (AllowPrivateAccess = "true"))
-	class UMaterialInstance* DefaultMaterial = nullptr;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Block", meta = (AllowPrivateAccess = "true"))
-	class UMaterialInstance* DarkenedMaterial = nullptr;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Block", meta = (AllowPrivateAccess = "true"))
-	class UMaterialInstance* CrossMaterial = nullptr;
+	TMap<TEnumAsByte<EBlockState>, class UMaterialInstance*> Materials;
 
 	int32 IndexInGrid = -1;
 };

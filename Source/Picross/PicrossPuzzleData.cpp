@@ -8,7 +8,7 @@ FIntVector UPicrossPuzzleData::GetGridSize() const
 	return GridSize;
 }
 
-TArray<bool> UPicrossPuzzleData::GetPicrossSolution() const
+const TArray<bool>& UPicrossPuzzleData::GetSolution() const
 {
 	return PicrossSolution;
 }

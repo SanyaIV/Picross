@@ -88,11 +88,11 @@ void APicrossGrid::CreateGrid(FIntVector WantedGridSize)
 
 void APicrossGrid::ClearGrid() const
 {
-	for (const APicrossBlock* Block : PicrossGrid)
+	for (APicrossBlock* Block : PicrossGrid)
 	{
 		if (Block)
 		{
-			Block->ResetBlock();
+			Block->ClearBlock();
 		}
 	}
 }
@@ -196,6 +196,24 @@ void APicrossGrid::DisableAllBlocks() const
 	{
 		Block->SetEnabled(false);
 	}
+}
+
+bool APicrossGrid::IsSolved() const
+{
+	const TArray<bool>& Solution = CurrentPuzzle->GetSolution();
+
+	if (PicrossGrid.Num() == Solution.Num())
+	{
+		for (int32 i = 0; i < Solution.Num(); ++i)
+		{
+			if (PicrossGrid[i]->IsFilled() != Solution[i])
+			{
+				return false;
+			}
+		}
+	}
+
+	return true;
 }
 
 void APicrossGrid::Move2DSelectionUp()

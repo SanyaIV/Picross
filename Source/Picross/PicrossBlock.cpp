@@ -20,7 +20,7 @@ void APicrossBlock::BeginPlay()
 {
 	Super::BeginPlay();
 
-	ResetBlock();
+	ClearBlock();
 }
 
 void APicrossBlock::SetEnabled(bool bEnabled)
@@ -29,60 +29,36 @@ void APicrossBlock::SetEnabled(bool bEnabled)
 	SetActorEnableCollision(bEnabled);
 }
 
-void APicrossBlock::DarkenBlock() const
+void APicrossBlock::DarkenBlock()
 {
-	if (BlockMesh && DarkenedMaterial)
-	{
-		UMaterialInstance* CurrentMaterial = Cast<UMaterialInstance>(BlockMesh->GetMaterial(0));
-		if (CurrentMaterial && CurrentMaterial->Equivalent(DarkenedMaterial) && DefaultMaterial)
-		{
-			BlockMesh->SetMaterial(0, DefaultMaterial);
-		}
-		else
-		{
-			BlockMesh->SetMaterial(0, DarkenedMaterial);
-		}
-	}
-
-	UE_LOG(LogTemp, Warning, TEXT("%d"), IndexInGrid)
+	State = State == EBlockState::Filled ? EBlockState::Clear : EBlockState::Filled;
+	UpdateMaterial();
 }
 
-void APicrossBlock::CrossBlock() const
+void APicrossBlock::CrossBlock()
 {
-	if (BlockMesh && CrossMaterial)
-	{
-		UMaterialInstance* CurrentMaterial = Cast<UMaterialInstance>(BlockMesh->GetMaterial(0));
-		if (CurrentMaterial && CurrentMaterial->Equivalent(CrossMaterial) && DefaultMaterial)
-		{
-			BlockMesh->SetMaterial(0, DefaultMaterial);
-		}
-		else
-		{
-			BlockMesh->SetMaterial(0, CrossMaterial);
-		}
-	}
+	State = State == EBlockState::Crossed ? EBlockState::Clear : EBlockState::Crossed;
+	UpdateMaterial();
 }
 
-void APicrossBlock::ResetBlock() const
+void APicrossBlock::ClearBlock()
 {
-	if (BlockMesh && DefaultMaterial)
-	{
-		BlockMesh->SetMaterial(0, DefaultMaterial);
-	}
+	State = EBlockState::Clear;
+	UpdateMaterial();
 }
 
-bool APicrossBlock::IsDarkened() const
+bool APicrossBlock::IsFilled() const
 {
-	if (BlockMesh && DarkenedMaterial)
-	{
-		UMaterialInstance* CurrentMaterial = Cast<UMaterialInstance>(BlockMesh->GetMaterial(0));
-		if (CurrentMaterial->Equivalent(DarkenedMaterial))
-		{
-			return true;
-		}
-	}
+	return State == EBlockState::Filled;
+}
 
-	return false;
+void APicrossBlock::UpdateMaterial() const
+{
+	UMaterialInstance*const*const MaterialToSet = Materials.Find(State); // Find returns a pointer to the value where the value is a pointer (pointer-to-pointer)
+	if (MaterialToSet && *MaterialToSet && BlockMesh) // Make sure all pointers aren't nullptr in the correct order.
+	{
+		BlockMesh->SetMaterial(0, *MaterialToSet); // Dereference the pointer-to-pointer to get the pointer to the material instance.
+	}
 }
 
 void APicrossBlock::SetIndexInGrid(int32 IndexToSet)

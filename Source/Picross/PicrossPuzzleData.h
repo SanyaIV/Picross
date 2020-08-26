@@ -16,7 +16,7 @@ class PICROSS_API UPicrossPuzzleData : public UDataAsset
 
 public:
 	FIntVector GetGridSize() const;
-	TArray<bool> GetPicrossSolution() const;
+	const TArray<bool>& GetSolution() const;
 	bool CheckIndex(int32 Index) const;
 	bool ValidatePuzzle() const;
 
