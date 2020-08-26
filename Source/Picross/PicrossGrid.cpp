@@ -153,7 +153,10 @@ void APicrossGrid::GenerateNumbersForAxis(ESelectionAxis Axis) const
 			TextComponent->SetText(FText::Join(FText::FromString(Axis == ESelectionAxis::Z ? TEXT("\n") : TEXT(", ")), Numbers));
 			TextComponent->SetHorizontalAlignment(Axis == ESelectionAxis::Z ? EHorizTextAligment::EHTA_Center : EHorizTextAligment::EHTA_Right);
 			TextComponent->SetVerticalAlignment(Axis == ESelectionAxis::Z ? EVerticalTextAligment::EVRTA_TextBottom : EVerticalTextAligment::EVRTA_TextCenter);
-
+			if (NumbersTextMaterial)
+			{
+				TextComponent->SetMaterial(0, NumbersTextMaterial);
+			}
 		}
 	}
 }

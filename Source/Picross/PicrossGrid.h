@@ -75,6 +75,9 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Picross", meta = (AllowPrivateAccess = "true"))
 	float DistanceBetweenBlocks = 110.f;
 
+	UPROPERTY(EditAnywhere, Category = "Picross", meta = (AllowPrivateAccess = "true"))
+	class UMaterialInstance* NumbersTextMaterial = nullptr;
+
 	ESelectionAxis SelectionAxis = ESelectionAxis::All;
 	FIntVector LastPivotXYZ = FIntVector::ZeroValue;
 };
