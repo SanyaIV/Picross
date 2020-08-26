@@ -102,21 +102,29 @@ void APicrossGrid::DestroyGrid()
 
 void APicrossGrid::GenerateNumbers() const
 {
+	GenerateNumbersForAxis(ESelectionAxis::X);
+	GenerateNumbersForAxis(ESelectionAxis::Y);
+	GenerateNumbersForAxis(ESelectionAxis::Z);
+}
+
+void APicrossGrid::GenerateNumbersForAxis(ESelectionAxis Axis) const
+{
 	if (!CurrentPuzzle) return;
 
 	const TArray<bool>& Solution = CurrentPuzzle->GetSolution();
 
-	// Generate numbers for X-axis
-	for (int32 Y = 0; Y < GridSize.Y; ++Y)
+	for (int32 Axis1 = 0; Axis1 < (Axis == ESelectionAxis::X ? GridSize.Y : GridSize.X); ++Axis1)
 	{
-		for (int32 Z = 0; Z < GridSize.Z; ++Z)
+		for (int32 Axis2 = 0; Axis2 < (Axis == ESelectionAxis::Z ? GridSize.Y : GridSize.Z); ++Axis2)
 		{
-			TArray<int32> Numbers;
+			FFormatOrderedArguments Numbers;
 			int32 Sum = 0;
 
-			for (int32 X = 0; X < GridSize.X; ++X)
+			for (int32 Axis3 = (Axis == ESelectionAxis::Z ? GridSize.Z -1 : 0); (Axis == ESelectionAxis::Z ? Axis3 >= 0 : Axis == ESelectionAxis::X ? Axis3 < GridSize.X : Axis3 < GridSize.Y); Axis == ESelectionAxis::Z ? --Axis3 : ++Axis3)
 			{
-				if (Solution[FArray3D::TranslateTo1D(GridSize, X, Y, Z)])
+				FIntVector XYZ = Axis == ESelectionAxis::X ? FIntVector(Axis3, Axis1, Axis2) : Axis == ESelectionAxis::Y ? FIntVector(Axis1, Axis3, Axis2) : FIntVector(Axis1, Axis2, Axis3);
+
+				if (Solution[FArray3D::TranslateTo1D(GridSize, XYZ)])
 				{
 					++Sum;
 				}
@@ -126,55 +134,30 @@ void APicrossGrid::GenerateNumbers() const
 					Sum = 0;
 				}
 			}
-		}
-	}
 
-	// Generate numbers for Y-axis
-	for (int32 X = 0; X < GridSize.X; ++X)
-	{
-		for (int32 Z = 0; Z < GridSize.Z; ++Z)
-		{
-			TArray<int32> Numbers;
-			int32 Sum = 0;
-
-			for (int32 Y = 0; Y < GridSize.Y; ++Y)
+			if (Sum > 0)
 			{
-				if (Solution[FArray3D::TranslateTo1D(GridSize, X, Y, Z)])
-				{
-					++Sum;
-				}
-				else if (Sum > 0)
-				{
-					Numbers.Add(Sum);
-					Sum = 0;
-				}
+				Numbers.Add(Sum);
 			}
-		}
-	}
 
-	// Generate numbers for Z-axis
-	for (int32 X = 0; X < GridSize.X; ++X)
-	{
-		for (int32 Y = 0; Y < GridSize.Y; ++Y)
-		{
-			TArray<int32> Numbers;
-			int32 Sum = 0;
+			FIntVector XYZ = Axis == ESelectionAxis::X ? FIntVector(0, Axis1, Axis2) : Axis == ESelectionAxis::Y ? FIntVector(Axis1, 0, Axis2) : FIntVector(Axis1, Axis2, GridSize.Z - 1);
 
-			for (int32 Z = GridSize.Z - 1; Z >= 0; --Z)
-			{
-				if (Solution[FArray3D::TranslateTo1D(GridSize, X, Y, Z)])
-				{
-					++Sum;
-				}
-				else if (Sum > 0)
-				{
-					Numbers.Add(Sum);
-					Sum = 0;
-				}
-			}
+			APicrossBlock* Block = PicrossGrid[FArray3D::TranslateTo1D(GridSize, XYZ)];
+			UTextRenderComponent* TextComponent = NewObject<UTextRenderComponent>(Block);
+			TextComponent->RegisterComponent();
+			TextComponent->AttachToComponent(Block->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
+			FVector RelativeLocation = Axis == ESelectionAxis::X ? FVector(-75.f, 0.f, 50.f) : Axis == ESelectionAxis::Y ? FVector(0.f, -75.f, 50.f) : FVector(0.f, 0.f, 100.f);
+			TextComponent->SetRelativeLocation(RelativeLocation);
+			FRotator RelativeRotation = Axis == ESelectionAxis::X ? FRotator(0.f, 90.f, 0.f) : Axis == ESelectionAxis::Y ? FRotator(0.f, 180.f, 0.f) : FRotator(0.f, 90.f, 0.f);
+			TextComponent->SetRelativeRotation(RelativeRotation);
+			TextComponent->SetText(FText::Join(FText::FromString(Axis == ESelectionAxis::Z ? TEXT("\n") : TEXT(", ")), Numbers));
+			TextComponent->SetHorizontalAlignment(Axis == ESelectionAxis::Z ? EHorizTextAligment::EHTA_Center : EHorizTextAligment::EHTA_Right);
+			TextComponent->SetVerticalAlignment(Axis == ESelectionAxis::Z ? EVerticalTextAligment::EVRTA_TextBottom : EVerticalTextAligment::EVRTA_TextCenter);
+
 		}
 	}
 }
+
 
 void APicrossGrid::Cycle2DRotation(const APicrossBlock* PivotBlock)
 {

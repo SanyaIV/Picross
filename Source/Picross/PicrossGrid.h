@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Components/TextRenderComponent.h"
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "PicrossGrid.generated.h"
@@ -34,7 +35,8 @@ public:
 	void ClearGrid() const;
 	void DestroyGrid();
 	void GenerateNumbers() const;
-
+	void GenerateNumbersForAxis(ESelectionAxis Axis) const;
+	
 	void Cycle2DRotation(const class APicrossBlock* PivotBlock);
 	void Move2DSelectionUp();
 	void Move2DSelectionDown();
