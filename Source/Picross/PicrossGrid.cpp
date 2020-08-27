@@ -1,6 +1,7 @@
 // Copyright Sanya Larsson 2020
 
 
+#include "Algo/Reverse.h"
 #include "Engine/AssetManager.h"
 #include "Engine/Engine.h"
 #include "IAssetTools.h"
@@ -141,22 +142,41 @@ void APicrossGrid::GenerateNumbersForAxis(ESelectionAxis Axis) const
 			}
 
 			FIntVector XYZ = Axis == ESelectionAxis::X ? FIntVector(0, Axis1, Axis2) : Axis == ESelectionAxis::Y ? FIntVector(Axis1, 0, Axis2) : FIntVector(Axis1, Axis2, GridSize.Z - 1);
-
 			APicrossBlock* Block = PicrossGrid[FArray3D::TranslateTo1D(GridSize, XYZ)];
-			UTextRenderComponent* TextComponent = NewObject<UTextRenderComponent>(Block);
-			TextComponent->RegisterComponent();
-			TextComponent->AttachToComponent(Block->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
+
 			FVector RelativeLocation = Axis == ESelectionAxis::X ? FVector(-75.f, 0.f, 50.f) : Axis == ESelectionAxis::Y ? FVector(0.f, -75.f, 50.f) : FVector(0.f, 0.f, 100.f);
-			TextComponent->SetRelativeLocation(RelativeLocation);
 			FRotator RelativeRotation = Axis == ESelectionAxis::X ? FRotator(0.f, 90.f, 0.f) : Axis == ESelectionAxis::Y ? FRotator(0.f, 180.f, 0.f) : FRotator(0.f, 90.f, 0.f);
-			TextComponent->SetRelativeRotation(RelativeRotation);
-			TextComponent->SetText(FText::Join(FText::FromString(Axis == ESelectionAxis::Z ? TEXT("\n") : TEXT(", ")), Numbers));
-			TextComponent->SetHorizontalAlignment(Axis == ESelectionAxis::Z ? EHorizTextAligment::EHTA_Center : EHorizTextAligment::EHTA_Right);
-			TextComponent->SetVerticalAlignment(Axis == ESelectionAxis::Z ? EVerticalTextAligment::EVRTA_TextBottom : EVerticalTextAligment::EVRTA_TextCenter);
-			if (NumbersTextMaterial)
-			{
-				TextComponent->SetMaterial(0, NumbersTextMaterial);
-			}
+			FText Text = FText::Join(FText::FromString(Axis == ESelectionAxis::Z ? TEXT("\n") : TEXT(", ")), Numbers);
+			EHorizTextAligment HAlignment = Axis == ESelectionAxis::Z ? EHorizTextAligment::EHTA_Center : EHorizTextAligment::EHTA_Right;
+			EVerticalTextAligment VAlignment = Axis == ESelectionAxis::Z ? EVerticalTextAligment::EVRTA_TextBottom : EVerticalTextAligment::EVRTA_TextCenter;
+			
+
+			FRotator RelativeRotation2 = Axis == ESelectionAxis::X ? FRotator(0.f, -90.f, 0.f) : Axis == ESelectionAxis::Y ? FRotator::ZeroRotator : FRotator(0.f, -90.f, 0.f);
+			Algo::Reverse(Numbers);
+			FText Text2 = Axis == ESelectionAxis::Z ? Text : FText::Join(FText::FromString(TEXT(", ")), Numbers);
+			EHorizTextAligment HAlignment2 = Axis == ESelectionAxis::Z ? EHorizTextAligment::EHTA_Center : EHorizTextAligment::EHTA_Left;
+
+			CreateAndAttachTextToBlock(Block, RelativeLocation, RelativeRotation, Text, HAlignment, VAlignment);
+			CreateAndAttachTextToBlock(Block, RelativeLocation, RelativeRotation2, Text2, HAlignment2, VAlignment);
+		}
+	}
+}
+
+void APicrossGrid::CreateAndAttachTextToBlock(class APicrossBlock* Block, FVector RelativeLocation, FRotator RelativeRotation, FText Text, EHorizTextAligment HAlignment, EVerticalTextAligment VAlignment) const
+{
+	UTextRenderComponent* TextComponent = NewObject<UTextRenderComponent>(Block);
+	if (TextComponent)
+	{
+		TextComponent->RegisterComponent();
+		TextComponent->AttachToComponent(Block->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
+		TextComponent->SetRelativeLocation(RelativeLocation);
+		TextComponent->SetRelativeRotation(RelativeRotation);
+		TextComponent->SetText(Text);
+		TextComponent->SetHorizontalAlignment(HAlignment);
+		TextComponent->SetVerticalAlignment(VAlignment);
+		if (NumbersTextMaterial)
+		{
+			TextComponent->SetMaterial(0, NumbersTextMaterial);
 		}
 	}
 }

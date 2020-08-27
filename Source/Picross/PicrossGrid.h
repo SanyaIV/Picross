@@ -34,8 +34,6 @@ public:
 	UFUNCTION(BlueprintCallable, CallInEditor, Category = "Picross")
 	void ClearGrid() const;
 	void DestroyGrid();
-	void GenerateNumbers() const;
-	void GenerateNumbersForAxis(ESelectionAxis Axis) const;
 	
 	void Cycle2DRotation(const class APicrossBlock* PivotBlock);
 	void Move2DSelectionUp();
@@ -51,6 +49,10 @@ protected:
 	virtual void BeginPlay() override;
 
 private:
+	void GenerateNumbers() const;
+	void GenerateNumbersForAxis(ESelectionAxis Axis) const;
+	void CreateAndAttachTextToBlock(class APicrossBlock* Block, FVector RelativeLocation, FRotator RelativeRotation, FText Text, EHorizTextAligment HAlignment, EVerticalTextAligment VAlignment) const;
+
 	void SetRotationXAxis(int32 PivotIndex);
 	void SetRotationYAxis(int32 PivotIndex);
 	void SetRotationZAxis(int32 PivotIndex);
