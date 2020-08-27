@@ -88,6 +88,28 @@ void APicrossGrid::ClearGrid() const
 	}
 }
 
+void APicrossGrid::TrySolve() const
+{
+	if (IsSolved())
+	{
+		EnableAllBlocks();
+
+		for (APicrossBlock* Block : PicrossGrid)
+		{
+			if (!Block->IsFilled())
+			{
+				Block->SetEnabled(false);
+			}
+		}
+
+		UE_LOG(LogTemp, Warning, TEXT("Solved!"))
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Unsolved!"))
+	}
+}
+
 void APicrossGrid::DestroyGrid()
 {
 	for (APicrossBlock* Block : PicrossGrid)
@@ -144,7 +166,7 @@ void APicrossGrid::GenerateNumbersForAxis(ESelectionAxis Axis) const
 			FIntVector XYZ = Axis == ESelectionAxis::X ? FIntVector(0, Axis1, Axis2) : Axis == ESelectionAxis::Y ? FIntVector(Axis1, 0, Axis2) : FIntVector(Axis1, Axis2, GridSize.Z - 1);
 			APicrossBlock* Block = PicrossGrid[FArray3D::TranslateTo1D(GridSize, XYZ)];
 
-			FVector RelativeLocation = Axis == ESelectionAxis::X ? FVector(-75.f, 0.f, 50.f) : Axis == ESelectionAxis::Y ? FVector(0.f, -75.f, 50.f) : FVector(0.f, 0.f, 100.f);
+			FVector RelativeLocation = Axis == ESelectionAxis::X ? FVector(-75.f, 0.f, 50.f) : Axis == ESelectionAxis::Y ? FVector(0.f, -75.f, 50.f) : FVector(0.f, 0.f, 115.f);
 			FRotator RelativeRotation = Axis == ESelectionAxis::X ? FRotator(0.f, 90.f, 0.f) : Axis == ESelectionAxis::Y ? FRotator(0.f, 180.f, 0.f) : FRotator(0.f, 90.f, 0.f);
 			FText Text = FText::Join(FText::FromString(Axis == ESelectionAxis::Z ? TEXT("\n") : TEXT(", ")), Numbers);
 			EHorizTextAligment HAlignment = Axis == ESelectionAxis::Z ? EHorizTextAligment::EHTA_Center : EHorizTextAligment::EHTA_Right;

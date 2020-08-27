@@ -31,6 +31,7 @@ protected:
 	void CycleSelectionRotation();
 	void MoveSelectionUp();
 	void MoveSelectionDown();
+	void TrySolve();
 
 	// Movement
 	void MoveForward(float Value);

@@ -33,6 +33,8 @@ public:
 	void CreateGrid();
 	UFUNCTION(BlueprintCallable, CallInEditor, Category = "Picross")
 	void ClearGrid() const;
+	UFUNCTION(BlueprintCallable, CallInEditor, Category = "Picross")
+	void TrySolve() const;
 	void DestroyGrid();
 	
 	void Cycle2DRotation(const class APicrossBlock* PivotBlock);
