@@ -2,6 +2,10 @@
 
 
 #include "Algo/Reverse.h"
+#include "AssetDataObject.h"
+#include "Blueprint/UserWidget.h"
+#include "Components/ListView.h"
+#include "Components/TextBlock.h"
 #include "Engine/AssetManager.h"
 #include "Engine/Engine.h"
 #include "IAssetTools.h"
@@ -25,9 +29,61 @@ APicrossGrid::APicrossGrid()
 void APicrossGrid::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	LoadPuzzle();
-	CreateGrid();
+
+	CreatePuzzleBrowser();
+}
+
+void APicrossGrid::CreatePuzzleBrowser()
+{
+	if (PuzzleBrowserWidgetClass)
+	{
+		PuzzleBrowserWidget = CreateWidget(GetWorld(), PuzzleBrowserWidgetClass, TEXT("Puzzle Browser"));
+		if (PuzzleBrowserWidget)
+		{
+			PuzzleBrowserWidget->AddToViewport();
+			UListView* List = Cast<UListView>(PuzzleBrowserWidget->GetWidgetFromName(TEXT("Puzzle_Browser")));
+			if (List)
+			{
+				for (FAssetData AssetData : GetAllPuzzles())
+				{
+					UAssetDataObject* AssetDataObject = NewObject<UAssetDataObject>(List, UAssetDataObject::StaticClass());
+					AssetDataObject->SetAssetData(AssetData);
+					AssetDataObject->SetPicrossGrid(this);
+					List->AddItem(AssetDataObject);
+				}
+			}
+		}
+	}
+}
+
+void APicrossGrid::OpenPuzzleBrowser() const
+{
+	if (PuzzleBrowserWidget)
+	{
+		PuzzleBrowserWidget->AddToViewport();
+	}
+}
+
+void APicrossGrid::ClosePuzzleBrowser() const
+{
+	if (PuzzleBrowserWidget)
+	{
+		PuzzleBrowserWidget->RemoveFromViewport();
+	}
+}
+
+TArray<FAssetData> APicrossGrid::GetAllPuzzles() const
+{
+	UObjectLibrary* ObjectLibrary = nullptr;
+	if (!ObjectLibrary)
+	{
+		UAssetManager& AssetManager = UAssetManager::Get();
+		TArray<FAssetData> AssetDatas;
+		AssetManager.GetPrimaryAssetDataList(TEXT("PicrossPuzzleData"), AssetDatas);
+		return AssetDatas;
+	}
+
+	return TArray<FAssetData>();
 }
 
 void APicrossGrid::CreateGrid()
@@ -372,22 +428,12 @@ void APicrossGrid::SavePuzzle() const
 	GEditor->SyncBrowserToObjects(ObjectsToSync);
 }
 
-bool APicrossGrid::LoadPuzzle()
+void APicrossGrid::LoadPuzzle(FAssetData PuzzleToLoad)
 {
-	UObjectLibrary* ObjectLibrary = nullptr;
-	if (!ObjectLibrary)
+	CurrentPuzzle = Cast<UPicrossPuzzleData>(PuzzleToLoad.GetAsset());
+	if (CurrentPuzzle)
 	{
-		UAssetManager& AssetManager = UAssetManager::Get();
-		TArray<FAssetData> AssetDatas;
-		AssetManager.GetPrimaryAssetDataList(TEXT("PicrossPuzzleData"), AssetDatas);
-		UE_LOG(LogTemp, Warning, TEXT("Found %d puzzles"), AssetDatas.Num())
-		
-		for (FAssetData AssetData : AssetDatas)
-		{
-			CurrentPuzzle = Cast<UPicrossPuzzleData>(AssetData.GetAsset());
-			if (CurrentPuzzle) return true;
-		}
+		ClosePuzzleBrowser();
+		CreateGrid();
 	}
-
-	return false;
 }

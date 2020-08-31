@@ -29,6 +29,11 @@ public:
 	// Sets default values for this actor's properties
 	APicrossGrid();
 
+	// TODO: Refactor into Puzzle Browser component.
+	void OpenPuzzleBrowser() const;
+	void ClosePuzzleBrowser() const;
+	TArray<FAssetData> GetAllPuzzles() const;
+
 	UFUNCTION(BlueprintCallable, CallInEditor, Category = "Picross")
 	void CreateGrid();
 	UFUNCTION(BlueprintCallable, CallInEditor, Category = "Picross")
@@ -44,13 +49,15 @@ public:
 	UFUNCTION(BlueprintCallable, CallInEditor, Category = "Picross")
 	void SavePuzzle() const;
 	UFUNCTION(BlueprintCallable, Category = "Picross")
-	bool LoadPuzzle(); 
+	void LoadPuzzle(FAssetData PuzzleToLoad); 
 
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
 private:
+	void CreatePuzzleBrowser();
+
 	void GenerateNumbers() const;
 	void GenerateNumbersForAxis(ESelectionAxis Axis) const;
 	void CreateAndAttachTextToBlock(class APicrossBlock* Block, FVector RelativeLocation, FRotator RelativeRotation, FText Text, EHorizTextAligment HAlignment, EVerticalTextAligment VAlignment) const;
@@ -68,10 +75,10 @@ private:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Picross", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<class APicrossBlock> PicrossBlockBP;
 
-	// A 3D array implemented in a 1D array. Functions handle the 3D aspect of it.
+	// A 3D array implemented in a 1D array. Use FArray3D to handle translation.
 	UPROPERTY(VisibleAnywhere, Category = "Picross")
 	TArray<class APicrossBlock*> PicrossGrid;
-	FIntVector GridSize = FIntVector::ZeroValue; // TODO: Remove and replace with gridsize from CurrentPuzzle.
+	FIntVector GridSize = FIntVector::ZeroValue;
 
 	UPROPERTY(EditAnywhere, Category = "Picross", meta = (AllowPrivateAccess = "true"))
 	FIntVector DefaultGridSize {5,5,5};
@@ -84,4 +91,10 @@ private:
 
 	ESelectionAxis SelectionAxis = ESelectionAxis::All;
 	FIntVector LastPivotXYZ = FIntVector::ZeroValue;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Picross", meta = (AllowPrivateAccess = "true"))
+	TSubclassOf<class UUserWidget> PuzzleBrowserWidgetClass = nullptr;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Picross", meta = (AllowPrivateAccess = "true"))
+	TSubclassOf<class UUserWidget> PuzzleBrowserItemWidget = nullptr;
+	UUserWidget* PuzzleBrowserWidget = nullptr;
 };
