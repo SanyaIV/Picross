@@ -29,7 +29,7 @@ public:
 	// Sets default values for this actor's properties
 	APicrossGrid();
 
-	// TODO: Refactor into Puzzle Browser component.
+	// TODO: Refactor into Puzzle Browser component/actor.
 	void OpenPuzzleBrowser() const;
 	void ClosePuzzleBrowser() const;
 	TArray<FAssetData> GetAllPuzzles() const;
@@ -60,7 +60,7 @@ private:
 
 	void GenerateNumbers() const;
 	void GenerateNumbersForAxis(ESelectionAxis Axis) const;
-	void CreateAndAttachTextToBlock(class APicrossBlock* Block, FVector RelativeLocation, FRotator RelativeRotation, FText Text, EHorizTextAligment HAlignment, EVerticalTextAligment VAlignment) const;
+	void CreateAndAttachTextToBlock(class APicrossBlock* Block, FVector RelativeLocation, FRotator RelativeRotation, FText Text, FColor Color, EHorizTextAligment HAlignment, EVerticalTextAligment VAlignment) const;
 
 	void SetRotationXAxis(int32 PivotIndex);
 	void SetRotationYAxis(int32 PivotIndex);

@@ -186,6 +186,7 @@ void APicrossGrid::GenerateNumbers() const
 	GenerateNumbersForAxis(ESelectionAxis::Z);
 }
 
+// TODO: break out magic values to const variables.
 void APicrossGrid::GenerateNumbersForAxis(ESelectionAxis Axis) const
 {
 	if (!CurrentPuzzle) return;
@@ -225,6 +226,7 @@ void APicrossGrid::GenerateNumbersForAxis(ESelectionAxis Axis) const
 			FVector RelativeLocation = Axis == ESelectionAxis::X ? FVector(-75.f, 0.f, 50.f) : Axis == ESelectionAxis::Y ? FVector(0.f, -75.f, 50.f) : FVector(0.f, 0.f, 115.f);
 			FRotator RelativeRotation = Axis == ESelectionAxis::X ? FRotator(0.f, 90.f, 0.f) : Axis == ESelectionAxis::Y ? FRotator(0.f, 180.f, 0.f) : FRotator(0.f, 90.f, 0.f);
 			FText Text = FText::Join(FText::FromString(Axis == ESelectionAxis::Z ? TEXT("\n") : TEXT(", ")), Numbers);
+			FColor Color = Axis == ESelectionAxis::Z ? FColor::Blue : Axis == ESelectionAxis::Y ? FColor::Green : FColor::Red;
 			EHorizTextAligment HAlignment = Axis == ESelectionAxis::Z ? EHorizTextAligment::EHTA_Center : EHorizTextAligment::EHTA_Right;
 			EVerticalTextAligment VAlignment = Axis == ESelectionAxis::Z ? EVerticalTextAligment::EVRTA_TextBottom : EVerticalTextAligment::EVRTA_TextCenter;
 			
@@ -234,13 +236,13 @@ void APicrossGrid::GenerateNumbersForAxis(ESelectionAxis Axis) const
 			FText Text2 = Axis == ESelectionAxis::Z ? Text : FText::Join(FText::FromString(TEXT(", ")), Numbers);
 			EHorizTextAligment HAlignment2 = Axis == ESelectionAxis::Z ? EHorizTextAligment::EHTA_Center : EHorizTextAligment::EHTA_Left;
 
-			CreateAndAttachTextToBlock(Block, RelativeLocation, RelativeRotation, Text, HAlignment, VAlignment);
-			CreateAndAttachTextToBlock(Block, RelativeLocation, RelativeRotation2, Text2, HAlignment2, VAlignment);
+			CreateAndAttachTextToBlock(Block, RelativeLocation, RelativeRotation, Text, Color, HAlignment, VAlignment);
+			CreateAndAttachTextToBlock(Block, RelativeLocation, RelativeRotation2, Text2, Color, HAlignment2, VAlignment);
 		}
 	}
 }
 
-void APicrossGrid::CreateAndAttachTextToBlock(class APicrossBlock* Block, FVector RelativeLocation, FRotator RelativeRotation, FText Text, EHorizTextAligment HAlignment, EVerticalTextAligment VAlignment) const
+void APicrossGrid::CreateAndAttachTextToBlock(class APicrossBlock* Block, FVector RelativeLocation, FRotator RelativeRotation, FText Text, FColor Color, EHorizTextAligment HAlignment, EVerticalTextAligment VAlignment) const
 {
 	UTextRenderComponent* TextComponent = NewObject<UTextRenderComponent>(Block);
 	if (TextComponent)
@@ -250,6 +252,7 @@ void APicrossGrid::CreateAndAttachTextToBlock(class APicrossBlock* Block, FVecto
 		TextComponent->SetRelativeLocation(RelativeLocation);
 		TextComponent->SetRelativeRotation(RelativeRotation);
 		TextComponent->SetText(Text);
+		TextComponent->SetTextRenderColor(Color);
 		TextComponent->SetHorizontalAlignment(HAlignment);
 		TextComponent->SetVerticalAlignment(VAlignment);
 		if (NumbersTextMaterial)
