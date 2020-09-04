@@ -15,12 +15,13 @@ class PICROSS_API UPicrossPuzzleData : public UDataAsset
 	GENERATED_BODY()
 
 public:
+	bool ValidatePuzzle() const;
+
 	FIntVector GetGridSize() const;
 	void SetGridSize(FIntVector NewGridSize);
+
 	const TArray<bool>& GetSolution() const;
 	void SetSolution(const TArray<bool> Solution);
-	bool CheckIndex(int32 Index) const;
-	bool ValidatePuzzle() const;
 
 	virtual FPrimaryAssetId GetPrimaryAssetId() const override;
 	

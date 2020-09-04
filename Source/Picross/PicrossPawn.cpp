@@ -39,13 +39,15 @@ void APicrossPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
+	// Pause Menu - Set to allow execution even when paused.
+	PlayerInputComponent->BindAction("Puzzle Browser", EInputEvent::IE_Pressed, this, &APicrossPawn::TogglePuzzleBrowser).bExecuteWhenPaused = true;
+
 	// Actions
 	PlayerInputComponent->BindAction("Fill Block", EInputEvent::IE_Pressed, this, &APicrossPawn::FillBlock);
 	PlayerInputComponent->BindAction("Cross Block", EInputEvent::IE_Pressed, this, &APicrossPawn::CrossBlock);
 	PlayerInputComponent->BindAction("Move Selection Up", EInputEvent::IE_Pressed, this, &APicrossPawn::MoveSelectionUp);
 	PlayerInputComponent->BindAction("Move Selection Down", EInputEvent::IE_Pressed, this, &APicrossPawn::MoveSelectionDown);
 	PlayerInputComponent->BindAction("Cycle Selection Rotation", EInputEvent::IE_Pressed, this, &APicrossPawn::CycleSelectionRotation);
-	PlayerInputComponent->BindAction("Try Solve", EInputEvent::IE_Pressed, this, &APicrossPawn::TrySolve);
 
 	// Rotation
 	PlayerInputComponent->BindAxis("Rotate Pitch", this, &APawn::AddControllerPitchInput);
@@ -59,19 +61,17 @@ void APicrossPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 
 APicrossBlock* APicrossPawn::GetPicrossBlockInView() const
 {
-	APicrossBlock* BlockToReturn = nullptr;
-
 	APicrossPlayerController* PlayerController = Cast<APicrossPlayerController>(GetController());
 	if (PlayerController)
 	{
 		FHitResult HitResult;
 		if (PlayerController->LineTraceSingleByChannelFromCenterOfScreen(HitResult, ReachDistance, ECollisionChannel::ECC_Visibility))
 		{
-			BlockToReturn = Cast<APicrossBlock>(HitResult.GetActor());
+			return Cast<APicrossBlock>(HitResult.GetActor());
 		}
 	}
 
-	return BlockToReturn;
+	return nullptr;
 }
 
 void APicrossPawn::FillBlock()
@@ -94,27 +94,25 @@ void APicrossPawn::CrossBlock()
 
 void APicrossPawn::CycleSelectionRotation()
 {
-	APicrossBlock* Block = GetPicrossBlockInView();
-	if (Block)
-	{
-		PicrossGrid->Cycle2DRotation(Block);
-	}
+	if (!PicrossGrid) return;
+
+	PicrossGrid->Cycle2DRotation(GetPicrossBlockInView());
 }
 
 void APicrossPawn::MoveSelectionUp()
 {
+	if (!PicrossGrid) return;
+
 	PicrossGrid->Move2DSelectionUp();
 }
 
 void APicrossPawn::MoveSelectionDown()
 {
+	if (!PicrossGrid) return;
+
 	PicrossGrid->Move2DSelectionDown();
 }
 
-void APicrossPawn::TrySolve()
-{
-	PicrossGrid->TrySolve();
-}
 
 void APicrossPawn::MoveForward(float Value)
 {
@@ -140,3 +138,17 @@ void APicrossPawn::MoveUp(float Value)
 	}
 }
 
+void APicrossPawn::TogglePuzzleBrowser()
+{
+	if (PicrossGrid)
+	{
+		if (UGameplayStatics::IsGamePaused(this))
+		{
+			PicrossGrid->ClosePuzzleBrowser();
+		}
+		else
+		{
+			PicrossGrid->OpenPuzzleBrowser();
+		}
+	}
+}

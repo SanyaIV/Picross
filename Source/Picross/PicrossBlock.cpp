@@ -25,31 +25,46 @@ void APicrossBlock::BeginPlay()
 
 void APicrossBlock::SetEnabled(bool bEnabled)
 {
+	if (bLocked) return;
+
 	SetActorHiddenInGame(!bEnabled);
 	SetActorEnableCollision(bEnabled);
 }
 
+void APicrossBlock::Lock()
+{
+	bLocked = true;
+}
+
 void APicrossBlock::FillBlock()
 {
-	State = State == EBlockState::Filled ? EBlockState::Clear : EBlockState::Filled;
+	if (bLocked) return;
+
+	SetState(State == EBlockState::Filled ? EBlockState::Clear : EBlockState::Filled);
 	UpdateMaterial();
 }
 
 void APicrossBlock::CrossBlock()
 {
-	State = State == EBlockState::Crossed ? EBlockState::Clear : EBlockState::Crossed;
+	if (bLocked) return;
+
+	SetState(State == EBlockState::Crossed ? EBlockState::Clear : EBlockState::Crossed);
 	UpdateMaterial();
 }
 
 void APicrossBlock::ClearBlock()
 {
-	State = EBlockState::Clear;
+	if (bLocked) return;
+
+	SetState(EBlockState::Clear);
 	UpdateMaterial();
 }
 
-bool APicrossBlock::IsFilled() const
+void APicrossBlock::SetState(EBlockState StateToSet)
 {
-	return State == EBlockState::Filled;
+	EBlockState PreviousState = State;
+	State = StateToSet;
+	OnStateChanged().Broadcast(PreviousState, State);
 }
 
 void APicrossBlock::UpdateMaterial() const

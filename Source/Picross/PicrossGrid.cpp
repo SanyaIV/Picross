@@ -1,17 +1,17 @@
 // Copyright Sanya Larsson 2020
 
 
+#include "Algo/Count.h"
 #include "Algo/Reverse.h"
 #include "AssetDataObject.h"
+#include "AssetToolsModule.h"
 #include "Blueprint/UserWidget.h"
 #include "Components/ListView.h"
 #include "Components/TextBlock.h"
 #include "Engine/AssetManager.h"
 #include "Engine/Engine.h"
 #include "IAssetTools.h"
-#include "AssetToolsModule.h"
 #include "UnrealEd.h"
-#include "PicrossBlock.h"
 #include "PicrossGrid.h"
 #include "PicrossPuzzleData.h"
 #include "PicrossPuzzleFactory.h"
@@ -88,6 +88,10 @@ TArray<FAssetData> APicrossGrid::GetAllPuzzles() const
 
 void APicrossGrid::CreateGrid()
 {
+	SelectionAxis = ESelectionAxis::All;
+	LastPivotXYZ = FIntVector::ZeroValue;
+	FilledBlocksCount = 0;
+	SolutionFilledBlocksCount = CurrentPuzzle ? Algo::Count(CurrentPuzzle->GetSolution(), true) : -1;
 	GridSize = CurrentPuzzle ? CurrentPuzzle->GetGridSize() : DefaultGridSize;
 	verify(FArray3D::ValidateDimensions(GridSize));
 
@@ -123,6 +127,7 @@ void APicrossGrid::CreateGrid()
 					if (PicrossGrid[Index])
 					{
 						PicrossGrid[Index]->SetIndexInGrid(Index);
+						PicrossGrid[Index]->OnStateChanged().AddUObject(this, &APicrossGrid::OnBlockStateChanged);
 					}
 				}
 				
@@ -141,28 +146,6 @@ void APicrossGrid::ClearGrid() const
 		{
 			Block->ClearBlock();
 		}
-	}
-}
-
-void APicrossGrid::TrySolve() const
-{
-	if (IsSolved())
-	{
-		EnableAllBlocks();
-
-		for (APicrossBlock* Block : PicrossGrid)
-		{
-			if (!Block->IsFilled())
-			{
-				Block->SetEnabled(false);
-			}
-		}
-
-		UE_LOG(LogTemp, Warning, TEXT("Solved!"))
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Unsolved!"))
 	}
 }
 
@@ -262,30 +245,29 @@ void APicrossGrid::CreateAndAttachTextToBlock(class APicrossBlock* Block, FVecto
 	}
 }
 
-
 void APicrossGrid::Cycle2DRotation(const APicrossBlock* PivotBlock)
 {
 	SelectionAxis = (SelectionAxis == ESelectionAxis::All ? ESelectionAxis::Z : SelectionAxis == ESelectionAxis::Z ? ESelectionAxis::Y : SelectionAxis == ESelectionAxis::Y ? ESelectionAxis::X : ESelectionAxis::All);
 
 	if (PivotBlock)
 	{
-		int32 PivotIndex = PivotBlock->GetIndexInGrid();
-
-		switch (SelectionAxis)
-		{
-		case X:		SetRotationXAxis(PivotIndex);	break;
-		case Y:		SetRotationYAxis(PivotIndex);	break;
-		case Z:		SetRotationZAxis(PivotIndex);	break;
-		default:	EnableAllBlocks();	break;
-		}
+		LastPivotXYZ = FArray3D::TranslateTo3D(GridSize, PivotBlock->GetIndexInGrid());
 	}
+
+	switch (SelectionAxis)
+	{
+	case X:		SetRotationXAxis();	break;
+	case Y:		SetRotationYAxis();	break;
+	case Z:		SetRotationZAxis();	break;
+	default:	EnableAllBlocks();	break;
+	}
+
 }
 
-void APicrossGrid::SetRotationXAxis(int32 PivotIndex)
+void APicrossGrid::SetRotationXAxis()
 {
 	DisableAllBlocks();
 
-	LastPivotXYZ = FArray3D::TranslateTo3D(GridSize, PivotIndex);
 	for (int32 Z = 0; Z < GridSize.Z; ++Z)
 	{
 		for (int32 Y = 0; Y < GridSize.Y; ++Y)
@@ -299,11 +281,10 @@ void APicrossGrid::SetRotationXAxis(int32 PivotIndex)
 	}
 }
 
-void APicrossGrid::SetRotationYAxis(int32 PivotIndex)
+void APicrossGrid::SetRotationYAxis()
 {
 	DisableAllBlocks();
 
-	LastPivotXYZ = FArray3D::TranslateTo3D(GridSize, PivotIndex);
 	for (int32 Z = 0; Z < GridSize.Z; ++Z)
 	{
 		for (int32 X = 0; X < GridSize.X; ++X)
@@ -317,11 +298,10 @@ void APicrossGrid::SetRotationYAxis(int32 PivotIndex)
 	}
 }
 
-void APicrossGrid::SetRotationZAxis(int32 PivotIndex)
+void APicrossGrid::SetRotationZAxis()
 {
 	DisableAllBlocks();
 
-	LastPivotXYZ = FArray3D::TranslateTo3D(GridSize, PivotIndex);
 	for (int32 Y = 0; Y < GridSize.Y; ++Y)
 	{
 		for (int32 X = 0; X < GridSize.X; ++X)
@@ -351,22 +331,70 @@ void APicrossGrid::DisableAllBlocks() const
 	}
 }
 
+void APicrossGrid::LockAllBlocks() const
+{
+	for (APicrossBlock* Block : PicrossGrid)
+	{
+		Block->Lock();
+	}
+}
+
 bool APicrossGrid::IsSolved() const
 {
-	const TArray<bool>& Solution = CurrentPuzzle->GetSolution();
-
-	if (PicrossGrid.Num() == Solution.Num())
+	if (CurrentPuzzle)
 	{
-		for (int32 i = 0; i < Solution.Num(); ++i)
+		const TArray<bool>& Solution = CurrentPuzzle->GetSolution();
+
+		if (PicrossGrid.Num() == Solution.Num())
 		{
-			if (PicrossGrid[i]->IsFilled() != Solution[i])
+			for (int32 i = 0; i < Solution.Num(); ++i)
 			{
-				return false;
+				if (PicrossGrid[i]->IsFilled() != Solution[i])
+				{
+					return false;
+				}
 			}
 		}
+
+		return true;
 	}
 
-	return true;
+	return false;
+}
+
+void APicrossGrid::TrySolve() const
+{
+	if (IsSolved())
+	{
+		EnableAllBlocks();
+
+		for (APicrossBlock* Block : PicrossGrid)
+		{
+			if (!Block->IsFilled())
+			{
+				Block->SetEnabled(false);
+			}
+		}
+
+		LockAllBlocks();
+	}
+}
+
+void APicrossGrid::OnBlockStateChanged(EBlockState PreviousState, EBlockState NewState)
+{
+	if (PreviousState != EBlockState::Filled && NewState == EBlockState::Filled)
+	{
+		++FilledBlocksCount;
+	}
+	else if (PreviousState == EBlockState::Filled && NewState != EBlockState::Filled)
+	{
+		--FilledBlocksCount;
+	}
+
+	if (FilledBlocksCount == SolutionFilledBlocksCount)
+	{
+		TrySolve();
+	}
 }
 
 void APicrossGrid::Move2DSelectionUp()
@@ -374,16 +402,16 @@ void APicrossGrid::Move2DSelectionUp()
 	switch (SelectionAxis)
 	{
 	case X:
-		LastPivotXYZ.X = LastPivotXYZ.X < GridSize.X - 1 ? LastPivotXYZ.X + 1 : 0;
-		SetRotationXAxis(FArray3D::TranslateTo1D(GridSize, LastPivotXYZ));
+		LastPivotXYZ.X = LastPivotXYZ.X > 0 ? LastPivotXYZ.X - 1 : GridSize.X - 1;
+		SetRotationXAxis();
 		break;
 	case Y:
-		LastPivotXYZ.Y = LastPivotXYZ.Y < GridSize.Y - 1 ? LastPivotXYZ.Y + 1 : 0;
-		SetRotationYAxis(FArray3D::TranslateTo1D(GridSize, LastPivotXYZ));
+		LastPivotXYZ.Y = LastPivotXYZ.Y > 0 ? LastPivotXYZ.Y - 1 : GridSize.Y - 1;
+		SetRotationYAxis();
 		break;
 	case Z:
 		LastPivotXYZ.Z = LastPivotXYZ.Z < GridSize.Z - 1 ? LastPivotXYZ.Z + 1 : 0;
-		SetRotationZAxis(FArray3D::TranslateTo1D(GridSize, LastPivotXYZ));
+		SetRotationZAxis();
 		break;
 	}
 }
@@ -393,16 +421,16 @@ void APicrossGrid::Move2DSelectionDown()
 	switch (SelectionAxis)
 	{
 	case X:
-		LastPivotXYZ.X = LastPivotXYZ.X > 0 ? LastPivotXYZ.X - 1 : GridSize.X - 1;
-		SetRotationXAxis(FArray3D::TranslateTo1D(GridSize, LastPivotXYZ));
+		LastPivotXYZ.X = LastPivotXYZ.X < GridSize.X - 1 ? LastPivotXYZ.X + 1 : 0;
+		SetRotationXAxis();
 		break;
 	case Y:
-		LastPivotXYZ.Y = LastPivotXYZ.Y > 0 ? LastPivotXYZ.Y - 1 : GridSize.Y - 1;
-		SetRotationYAxis(FArray3D::TranslateTo1D(GridSize, LastPivotXYZ));
+		LastPivotXYZ.Y = LastPivotXYZ.Y < GridSize.Y - 1 ? LastPivotXYZ.Y + 1 : 0;
+		SetRotationYAxis();
 		break;
 	case Z:
 		LastPivotXYZ.Z = LastPivotXYZ.Z > 0 ? LastPivotXYZ.Z - 1 : GridSize.Z - 1;
-		SetRotationZAxis(FArray3D::TranslateTo1D(GridSize, LastPivotXYZ));
+		SetRotationZAxis();
 		break;
 	}
 }

@@ -31,12 +31,13 @@ protected:
 	void CycleSelectionRotation();
 	void MoveSelectionUp();
 	void MoveSelectionDown();
-	void TrySolve();
 
 	// Movement
 	void MoveForward(float Value);
 	void MoveRight(float Value);
 	void MoveUp(float Value);
+
+	void TogglePuzzleBrowser();
 
 private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Pawn", meta = (AllowPrivateAccess = "true"))

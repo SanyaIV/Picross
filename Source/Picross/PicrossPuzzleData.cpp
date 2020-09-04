@@ -23,17 +23,6 @@ void UPicrossPuzzleData::SetSolution(const TArray<bool> Solution)
 	PicrossSolution = Solution;
 }
 
-bool UPicrossPuzzleData::CheckIndex(int32 Index) const
-{
-	if (PicrossSolution.IsValidIndex(Index))
-	{
-		return PicrossSolution[Index];
-	}
-
-	UE_LOG(LogTemp, Error, TEXT("Invalid index while checking PicrossPuzzleData for index: %i"), Index)
-	return false;
-}
-
 bool UPicrossPuzzleData::ValidatePuzzle() const
 {
 	if (GridSize.X > 0 && GridSize.Y > 0 && GridSize.Z > 0)

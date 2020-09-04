@@ -2,10 +2,21 @@
 
 #pragma once
 
+// Default includes
 #include "Components/TextRenderComponent.h"
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+
+// Custom includes
+#include "PicrossBlock.h" // We include this here instead of forward declare to get access to EBlockState enum.
+
+// Default generated - Needs to be bottom-most include.
 #include "PicrossGrid.generated.h"
+
+// Forward declarations
+class UMaterialInstance;
+class UUserWidget;
+class UPicrossPuzzleData;
 
 
 UENUM()
@@ -29,7 +40,6 @@ public:
 	// Sets default values for this actor's properties
 	APicrossGrid();
 
-	// TODO: Refactor into Puzzle Browser component/actor.
 	void OpenPuzzleBrowser() const;
 	void ClosePuzzleBrowser() const;
 	TArray<FAssetData> GetAllPuzzles() const;
@@ -38,11 +48,9 @@ public:
 	void CreateGrid();
 	UFUNCTION(BlueprintCallable, CallInEditor, Category = "Picross")
 	void ClearGrid() const;
-	UFUNCTION(BlueprintCallable, CallInEditor, Category = "Picross")
-	void TrySolve() const;
 	void DestroyGrid();
 	
-	void Cycle2DRotation(const class APicrossBlock* PivotBlock);
+	void Cycle2DRotation(const APicrossBlock* PivotBlock);
 	void Move2DSelectionUp();
 	void Move2DSelectionDown();
 
@@ -60,41 +68,57 @@ private:
 
 	void GenerateNumbers() const;
 	void GenerateNumbersForAxis(ESelectionAxis Axis) const;
-	void CreateAndAttachTextToBlock(class APicrossBlock* Block, FVector RelativeLocation, FRotator RelativeRotation, FText Text, FColor Color, EHorizTextAligment HAlignment, EVerticalTextAligment VAlignment) const;
+	void CreateAndAttachTextToBlock(APicrossBlock* Block, FVector RelativeLocation, FRotator RelativeRotation, FText Text, FColor Color, EHorizTextAligment HAlignment, EVerticalTextAligment VAlignment) const;
 
-	void SetRotationXAxis(int32 PivotIndex);
-	void SetRotationYAxis(int32 PivotIndex);
-	void SetRotationZAxis(int32 PivotIndex);
+	void SetRotationXAxis();
+	void SetRotationYAxis();
+	void SetRotationZAxis();
 	void EnableAllBlocks() const;
 	void DisableAllBlocks() const;
+	void LockAllBlocks() const;
 	bool IsSolved() const;
+	void TrySolve() const;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Picross", meta = (AllowPrivateAccess = "true"))
-	class UPicrossPuzzleData* CurrentPuzzle = nullptr;
-
+	UFUNCTION()
+	void OnBlockStateChanged(EBlockState PreviousState, EBlockState NewState);
+	
+	// Blueprint for the puzzle blocks we spawn in.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Picross", meta = (AllowPrivateAccess = "true"))
-	TSubclassOf<class APicrossBlock> PicrossBlockBP;
-
-	// A 3D array implemented in a 1D array. Use FArray3D to handle translation.
-	UPROPERTY(VisibleAnywhere, Category = "Picross")
-	TArray<class APicrossBlock*> PicrossGrid;
-	FIntVector GridSize = FIntVector::ZeroValue;
-
-	UPROPERTY(EditAnywhere, Category = "Picross", meta = (AllowPrivateAccess = "true"))
-	FIntVector DefaultGridSize {5,5,5};
-
+	TSubclassOf<APicrossBlock> PicrossBlockBP;
+	// The distance to use between the blocks when spawning them.
 	UPROPERTY(EditAnywhere, Category = "Picross", meta = (AllowPrivateAccess = "true"))
 	float DistanceBetweenBlocks = 110.f;
 
-	UPROPERTY(EditAnywhere, Category = "Picross", meta = (AllowPrivateAccess = "true"))
-	class UMaterialInstance* NumbersTextMaterial = nullptr;
+	// The currently loaded Puzzle, if null then we're creating a new puzzle.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Picross", meta = (AllowPrivateAccess = "true"))
+	UPicrossPuzzleData* CurrentPuzzle = nullptr;
+	// The total amount of filled blocks in the puzzle solution.
+	int32 SolutionFilledBlocksCount = -1;
+	// Used to keep track of the total amount of filled block count.
+	int32 FilledBlocksCount = 0;
 
+	// A 3D array implemented in a 1D array. Use FArray3D to handle translation.
+	UPROPERTY(VisibleAnywhere, Category = "Picross")
+	TArray<APicrossBlock*> PicrossGrid;
+	// GridSize for PicrossGrid above.
+	FIntVector GridSize = FIntVector::ZeroValue;
+
+	// GridSize to use when we can't load a puzzle.
+	UPROPERTY(EditAnywhere, Category = "Picross", meta = (AllowPrivateAccess = "true"))
+	FIntVector DefaultGridSize {5,5,5};
+
+	// The material to use for the text that we create for rows and columns.
+	UPROPERTY(EditAnywhere, Category = "Picross", meta = (AllowPrivateAccess = "true"))
+	UMaterialInstance* NumbersTextMaterial = nullptr;
+
+	// Keeps track of the current axis of selection.
 	ESelectionAxis SelectionAxis = ESelectionAxis::All;
+	// Caches the last index used to pivot so we can do that operation without a new pivot-index.
 	FIntVector LastPivotXYZ = FIntVector::ZeroValue;
 
+	// The blueprint widget class that we use to create the puzzle browser widget.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Picross", meta = (AllowPrivateAccess = "true"))
-	TSubclassOf<class UUserWidget> PuzzleBrowserWidgetClass = nullptr;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Picross", meta = (AllowPrivateAccess = "true"))
-	TSubclassOf<class UUserWidget> PuzzleBrowserItemWidget = nullptr;
+	TSubclassOf<UUserWidget> PuzzleBrowserWidgetClass = nullptr;
+	// Pointer to the created puzzle browser widget.
 	UUserWidget* PuzzleBrowserWidget = nullptr;
 };
