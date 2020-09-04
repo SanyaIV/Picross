@@ -6,17 +6,14 @@
 #include "Components/TextRenderComponent.h"
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-
-// Custom includes
-#include "PicrossBlock.h" // We include this here instead of forward declare to get access to EBlockState enum.
-
-// Default generated - Needs to be bottom-most include.
 #include "PicrossGrid.generated.h"
 
 // Forward declarations
+class APicrossBlock;
 class UMaterialInstance;
 class UUserWidget;
 class UPicrossPuzzleData;
+enum class EBlockState : uint8;
 
 
 UENUM()

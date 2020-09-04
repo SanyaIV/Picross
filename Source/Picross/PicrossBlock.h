@@ -6,15 +6,14 @@
 #include "GameFramework/Actor.h"
 #include "PicrossBlock.generated.h"
 
+
 UENUM()
-enum EBlockState
+enum class EBlockState : uint8
 {
 	Clear		UMETA(DisplayName = "Clear"),
 	Crossed		UMETA(DisplayName = "Crossed"),
 	Filled		UMETA(DisplayName = "Filled")
 };
-
-
 
 /**
  * The Picross Block

@@ -12,6 +12,7 @@
 #include "Engine/Engine.h"
 #include "IAssetTools.h"
 #include "UnrealEd.h"
+#include "PicrossBlock.h"
 #include "PicrossGrid.h"
 #include "PicrossPuzzleData.h"
 #include "PicrossPuzzleFactory.h"
