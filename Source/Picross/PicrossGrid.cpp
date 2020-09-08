@@ -150,6 +150,19 @@ void APicrossGrid::ClearGrid() const
 	}
 }
 
+void APicrossGrid::EnableOnlyFilledBlocks() const
+{
+	DisableAllBlocks();
+
+	for (APicrossBlock* Block : PicrossGrid)
+	{
+		if (Block->IsFilled())
+		{
+			Block->SetEnabled(true);
+		}
+	}
+}
+
 void APicrossGrid::DestroyGrid()
 {
 	for (APicrossBlock* Block : PicrossGrid)
@@ -367,16 +380,7 @@ void APicrossGrid::TrySolve() const
 {
 	if (IsSolved())
 	{
-		EnableAllBlocks();
-
-		for (APicrossBlock* Block : PicrossGrid)
-		{
-			if (!Block->IsFilled())
-			{
-				Block->SetEnabled(false);
-			}
-		}
-
+		EnableOnlyFilledBlocks();
 		LockAllBlocks();
 	}
 }

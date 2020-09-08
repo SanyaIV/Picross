@@ -42,6 +42,10 @@ void APicrossPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	// Pause Menu - Set to allow execution even when paused.
 	PlayerInputComponent->BindAction("Puzzle Browser", EInputEvent::IE_Pressed, this, &APicrossPawn::TogglePuzzleBrowser).bExecuteWhenPaused = true;
 
+	// Input mode
+	PlayerInputComponent->BindAction("Alternative Input Mode", EInputEvent::IE_Pressed, this, &APicrossPawn::EnableAlternativeInputMode);
+	PlayerInputComponent->BindAction("Alternative Input Mode", EInputEvent::IE_Released, this, &APicrossPawn::DisableAlternativeInputMode);
+
 	// Actions
 	PlayerInputComponent->BindAction("Fill Block", EInputEvent::IE_Pressed, this, &APicrossPawn::FillBlock);
 	PlayerInputComponent->BindAction("Cross Block", EInputEvent::IE_Pressed, this, &APicrossPawn::CrossBlock);
@@ -50,8 +54,8 @@ void APicrossPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	PlayerInputComponent->BindAction("Cycle Selection Rotation", EInputEvent::IE_Pressed, this, &APicrossPawn::CycleSelectionRotation);
 
 	// Rotation
-	PlayerInputComponent->BindAxis("Rotate Pitch", this, &APawn::AddControllerPitchInput);
-	PlayerInputComponent->BindAxis("Rotate Yaw", this, &APawn::AddControllerYawInput);
+	PlayerInputComponent->BindAxis("Rotate Pitch", this, &APicrossPawn::AddControllerPitchInput);
+	PlayerInputComponent->BindAxis("Rotate Yaw", this, &APicrossPawn::AddControllerYawInput);
 
 	// Movement
 	PlayerInputComponent->BindAxis("Move Forward", this, &APicrossPawn::MoveForward);
@@ -74,9 +78,61 @@ APicrossBlock* APicrossPawn::GetPicrossBlockInView() const
 	return nullptr;
 }
 
+APicrossBlock* APicrossPawn::GetPicrossBlockUnderMouse() const
+{
+	APicrossPlayerController* PlayerController = Cast<APicrossPlayerController>(GetController());
+	if (PlayerController)
+	{
+		FVector Start, Direction, End;
+		PlayerController->DeprojectMousePositionToWorld(Start, Direction);
+		End = Start + Direction * ReachDistance;
+
+		FHitResult HitResult;
+		if (GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Visibility))
+		{
+			return Cast<APicrossBlock>(HitResult.GetActor());
+		}
+	}
+
+	return nullptr;
+}
+
+void APicrossPawn::EnableAlternativeInputMode()
+{
+	InputMode = EInputMode::Alternative;
+	if (APicrossPlayerController* PPC = Cast<APicrossPlayerController>(GetController()))
+	{
+		PPC->bShowMouseCursor = true;
+		PPC->bEnableClickEvents = true;
+		PPC->SetInputModeGameOnly();
+	}
+}
+
+void APicrossPawn::DisableAlternativeInputMode()
+{
+	InputMode = EInputMode::Default;
+	if (APicrossPlayerController* PPC = Cast<APicrossPlayerController>(GetController()))
+	{
+		PPC->bShowMouseCursor = false;
+		PPC->bEnableClickEvents = false;
+		PPC->SetInputModeGameOnly(); // We set this even though it's already set in order to work around an input issue where rotation won't be possible until left-clicking.
+	}
+}
+
 void APicrossPawn::FillBlock()
 {
-	APicrossBlock* Block = GetPicrossBlockInView();
+	APicrossBlock* Block = nullptr;
+
+	switch (InputMode)
+	{
+		case EInputMode::Default:
+			Block = GetPicrossBlockInView();
+			break;
+		case EInputMode::Alternative:
+			Block = GetPicrossBlockUnderMouse();
+			break;
+	}
+
 	if (Block)
 	{
 		Block->FillBlock();
@@ -85,7 +141,18 @@ void APicrossPawn::FillBlock()
 
 void APicrossPawn::CrossBlock()
 {
-	APicrossBlock* Block = GetPicrossBlockInView();
+	APicrossBlock* Block = nullptr;
+
+	switch (InputMode)
+	{
+		case EInputMode::Default:
+			Block = GetPicrossBlockInView();
+			break;
+		case EInputMode::Alternative:
+			Block = GetPicrossBlockUnderMouse();
+			break;
+	}
+
 	if (Block)
 	{
 		Block->CrossBlock();
@@ -113,6 +180,25 @@ void APicrossPawn::MoveSelectionDown()
 	PicrossGrid->Move2DSelectionDown();
 }
 
+void APicrossPawn::AddControllerPitchInput(float Value)
+{
+	switch (InputMode)
+	{
+		case EInputMode::Default:
+			APawn::AddControllerPitchInput(Value);
+			break;
+	}
+}
+
+void APicrossPawn::AddControllerYawInput(float Value)
+{
+	switch (InputMode)
+	{
+		case EInputMode::Default:
+			APawn::AddControllerYawInput(Value);
+			break;
+	}
+}
 
 void APicrossPawn::MoveForward(float Value)
 {

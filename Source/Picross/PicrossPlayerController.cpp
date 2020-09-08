@@ -5,6 +5,11 @@
 #include "PicrossPlayerController.h"
 
 
+APicrossPlayerController::APicrossPlayerController()
+{
+	InputModeGameOnly.SetConsumeCaptureMouseDown(false);
+}
+
 void APicrossPlayerController::BeginPlay()
 {
 	if (PlayerWidgetClass)
@@ -16,6 +21,11 @@ void APicrossPlayerController::BeginPlay()
 			PlayerWidget->AddToPlayerScreen();
 		}
 	}
+}
+
+void APicrossPlayerController::SetInputModeGameOnly()
+{
+	SetInputMode(InputModeGameOnly);
 }
 
 bool APicrossPlayerController::LineTraceSingleByChannelFromCenterOfScreen(FHitResult& OutHit, float DistanceToCheck, ECollisionChannel TraceChannel) const

@@ -6,6 +6,14 @@
 #include "GameFramework/Pawn.h"
 #include "PicrossPawn.generated.h"
 
+
+UENUM()
+enum class EInputMode : uint8
+{
+	Default		UMETA(DisplayName = "Default"),
+	Alternative	UMETA(DisplayName = "Alternative")
+};
+
 /**
  * The Picross pawn responsible for interacting with the Picross puzzle.
  */
@@ -24,6 +32,11 @@ public:
 
 protected:
 	class APicrossBlock* GetPicrossBlockInView() const;
+	class APicrossBlock* GetPicrossBlockUnderMouse() const;
+
+	// Input mode
+	void EnableAlternativeInputMode();
+	void DisableAlternativeInputMode();
 	
 	// Picross Actions
 	void FillBlock();
@@ -31,6 +44,10 @@ protected:
 	void CycleSelectionRotation();
 	void MoveSelectionUp();
 	void MoveSelectionDown();
+
+	// Rotation
+	virtual void AddControllerPitchInput(float Value) override;
+	virtual void AddControllerYawInput(float Value) override;
 
 	// Movement
 	void MoveForward(float Value);
@@ -49,6 +66,9 @@ private:
 
 	UPROPERTY()
 	class APicrossGrid* PicrossGrid = nullptr;
+
+	UPROPERTY()
+	EInputMode InputMode = EInputMode::Default;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Pawn", meta = (AllowPrivateAccess = "true"))
 	float ReachDistance = 500.f;

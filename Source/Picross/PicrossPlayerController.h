@@ -15,6 +15,11 @@ class PICROSS_API APicrossPlayerController : public APlayerController
 	GENERATED_BODY()
 	
 public:
+	APicrossPlayerController();
+
+	UFUNCTION(BlueprintCallable, Category = "Input")
+	void SetInputModeGameOnly();
+
 	/**
 	 * Linetrace from the center of the screen and forwards in the camera direction.
 	 * @param OutHit - Reference to a FHitResult which will contain the results of the linetrace.
@@ -30,4 +35,7 @@ protected:
 private:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "UI", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<class UUserWidget> PlayerWidgetClass = nullptr;
+
+	FInputModeGameAndUI InputModeGameAndUI;
+	FInputModeGameOnly InputModeGameOnly;
 };

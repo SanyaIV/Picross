@@ -70,8 +70,14 @@ private:
 	void SetRotationXAxis();
 	void SetRotationYAxis();
 	void SetRotationZAxis();
+
+	UFUNCTION(BlueprintCallable, CallInEditor, Category = "Picross")
+	void EnableOnlyFilledBlocks() const;
+	UFUNCTION(BlueprintCallable, CallInEditor, Category = "Picross")
 	void EnableAllBlocks() const;
+	UFUNCTION(BlueprintCallable, CallInEditor, Category = "Picross")
 	void DisableAllBlocks() const;
+
 	void LockAllBlocks() const;
 	bool IsSolved() const;
 	void TrySolve() const;
