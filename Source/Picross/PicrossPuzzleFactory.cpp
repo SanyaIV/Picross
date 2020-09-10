@@ -1,8 +1,8 @@
 // Copyright Sanya Larsson 2020
 
 
-#include "PicrossPuzzleData.h"
 #include "PicrossPuzzleFactory.h"
+#include "PicrossPuzzleData.h"
 #include "UnrealEd.h"
 
 

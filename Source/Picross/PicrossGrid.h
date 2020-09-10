@@ -5,19 +5,17 @@
 // Default includes
 #include "Components/TextRenderComponent.h"
 #include "CoreMinimal.h"
+#include "PicrossBlock.h"
 #include "GameFramework/Actor.h"
 #include "PicrossGrid.generated.h"
 
 // Forward declarations
-class APicrossBlock;
 class UMaterialInstance;
 class UUserWidget;
 class UPicrossPuzzleData;
-enum class EBlockState : uint8;
-
 
 UENUM()
-enum ESelectionAxis
+enum class ESelectionAxis : uint8
 {
 	Z	UMETA(DisplayName = "Z"),
 	Y	UMETA(DisplayName = "Y"),
@@ -44,10 +42,13 @@ public:
 	UFUNCTION(BlueprintCallable, CallInEditor, Category = "Picross")
 	void CreateGrid();
 	UFUNCTION(BlueprintCallable, CallInEditor, Category = "Picross")
-	void ClearGrid() const;
+	void ClearGrid();
 	void DestroyGrid();
+
+	void FillBlock(int32 MasterIndex);
+	void CrossBlock(int32 MasterIndex);
 	
-	void Cycle2DRotation(const APicrossBlock* PivotBlock);
+	void Cycle2DRotation(int32 MasterIndexPivot);
 	void Move2DSelectionUp();
 	void Move2DSelectionDown();
 
@@ -65,29 +66,28 @@ private:
 
 	void GenerateNumbers() const;
 	void GenerateNumbersForAxis(ESelectionAxis Axis) const;
-	void CreateAndAttachTextToBlock(APicrossBlock* Block, FVector RelativeLocation, FRotator RelativeRotation, FText Text, FColor Color, EHorizTextAligment HAlignment, EVerticalTextAligment VAlignment) const;
+	void CreateTextRender(FVector WorldLocation, FRotator WorldRotation, FText Text, FColor Color, EHorizTextAligment HAlignment, EVerticalTextAligment VAlignment) const;
 
-	void SetRotationXAxis();
-	void SetRotationYAxis();
-	void SetRotationZAxis();
+	void SetRotationXAxis() const;
+	void SetRotationYAxis() const;
+	void SetRotationZAxis() const;
+
+	void UpdateBlockState(FPicrossBlock& Block, EBlockState NewState);
 
 	UFUNCTION(BlueprintCallable, CallInEditor, Category = "Picross")
 	void EnableOnlyFilledBlocks() const;
 	UFUNCTION(BlueprintCallable, CallInEditor, Category = "Picross")
 	void EnableAllBlocks() const;
 	UFUNCTION(BlueprintCallable, CallInEditor, Category = "Picross")
-	void DisableAllBlocks() const;
+	void DisableAllBlocks(bool bMarkRenderStateDirty = true) const;
 
 	void LockAllBlocks() const;
 	bool IsSolved() const;
 	void TrySolve() const;
 
 	UFUNCTION()
-	void OnBlockStateChanged(EBlockState PreviousState, EBlockState NewState);
+	void OnBlockStateChanged();
 	
-	// Blueprint for the puzzle blocks we spawn in.
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Picross", meta = (AllowPrivateAccess = "true"))
-	TSubclassOf<APicrossBlock> PicrossBlockBP;
 	// The distance to use between the blocks when spawning them.
 	UPROPERTY(EditAnywhere, Category = "Picross", meta = (AllowPrivateAccess = "true"))
 	float DistanceBetweenBlocks = 110.f;
@@ -97,16 +97,16 @@ private:
 	UPicrossPuzzleData* CurrentPuzzle = nullptr;
 	// The total amount of filled blocks in the puzzle solution.
 	int32 SolutionFilledBlocksCount = -1;
-	// Used to keep track of the total amount of filled block count.
-	int32 FilledBlocksCount = 0;
 
 	// A 3D array implemented in a 1D array. Use FArray3D to handle translation.
-	UPROPERTY(VisibleAnywhere, Category = "Picross")
-	TArray<APicrossBlock*> PicrossGrid;
-	// GridSize for PicrossGrid above.
-	FIntVector GridSize = FIntVector::ZeroValue;
+	UPROPERTY()
+	TArray<FPicrossBlock> MasterGrid;
+	UPROPERTY();
+	TMap<EBlockState, UInstancedStaticMeshComponent*> BlockInstances;
 
-	// GridSize to use when we can't load a puzzle.
+	// GridSize for MasterGrid above.
+	FIntVector GridSize = FIntVector::ZeroValue;
+	// GridSize to use when we can't load a puzzle. Not constexpr since we change this in editor to create new puzzles.
 	UPROPERTY(EditAnywhere, Category = "Picross", meta = (AllowPrivateAccess = "true"))
 	FIntVector DefaultGridSize {5,5,5};
 
@@ -123,5 +123,6 @@ private:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Picross", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<UUserWidget> PuzzleBrowserWidgetClass = nullptr;
 	// Pointer to the created puzzle browser widget.
+	UPROPERTY()
 	UUserWidget* PuzzleBrowserWidget = nullptr;
 };

@@ -31,8 +31,8 @@ public:
 	virtual void BeginPlay() override;
 
 protected:
-	class APicrossBlock* GetPicrossBlockInView() const;
-	class APicrossBlock* GetPicrossBlockUnderMouse() const;
+	int32 GetBlockMasterIndexInView() const;
+	int32 GetBlockMasterIndexUnderMouse() const;
 
 	// Input mode
 	void EnableAlternativeInputMode();

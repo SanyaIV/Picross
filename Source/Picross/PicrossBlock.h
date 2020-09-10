@@ -2,61 +2,34 @@
 
 #pragma once
 
+// Default includes
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
 #include "PicrossBlock.generated.h"
-
 
 UENUM()
 enum class EBlockState : uint8
 {
-	Clear		UMETA(DisplayName = "Clear"),
-	Crossed		UMETA(DisplayName = "Crossed"),
-	Filled		UMETA(DisplayName = "Filled")
+	Clear	UMETA(DisplayName = "Clear"),
+	Crossed	UMETA(DisplayName = "Crossed"),
+	Filled	UMETA(DisplayName = "Filled")
 };
 
-/**
- * The Picross Block
- */
-UCLASS()
-class PICROSS_API APicrossBlock : public AActor
+USTRUCT(BlueprintType)
+struct PICROSS_API FPicrossBlock
 {
 	GENERATED_BODY()
-	
-public:	
-	// Sets default values for this actor's properties
-	APicrossBlock();
 
-	void SetEnabled(bool bEnabled);
-	void Lock();
+	UPROPERTY(VisibleAnywhere)
+	EBlockState State;
+	UPROPERTY(VisibleAnywhere)
+	FTransform Transform;
+	UPROPERTY(VisibleAnywhere)
+	int32 MasterIndex;
+	UPROPERTY(VisibleAnywhere)
+	int32 InstanceIndex;
 
-	void FillBlock();
-	void CrossBlock();
-	void ClearBlock();
-	bool IsFilled() const { return State == EBlockState::Filled; };
-
-	void SetIndexInGrid(int32 IndexToSet);
-	int32 GetIndexInGrid() const;
-
-	DECLARE_EVENT_TwoParams(APicrossBlock, FStateChangedEvent, EBlockState, EBlockState);
-	FStateChangedEvent& OnStateChanged() { return StateChangedEvent; };
-
-protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
-
-	void SetState(EBlockState StateToSet);
-	void UpdateMaterial() const;
-
-private:
-	bool bLocked = false;
-	EBlockState State = EBlockState::Clear;
-	FStateChangedEvent StateChangedEvent;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Block", meta = (AllowPrivateAccess = "true"))
-	class UStaticMeshComponent* BlockMesh = nullptr;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Block", meta = (AllowPrivateAccess = "true"))
-	TMap<TEnumAsByte<EBlockState>, class UMaterialInstance*> Materials;
-
-	int32 IndexInGrid = -1;
+	FPicrossBlock() { State = EBlockState::Clear, Transform = FTransform::Identity, MasterIndex = -1; InstanceIndex = -1; };
+	FPicrossBlock(EBlockState NewState, FTransform NewTransform, int32 NewMasterIndex, int32 NewInstanceIndex) : State(NewState), Transform(NewTransform), MasterIndex(NewMasterIndex), InstanceIndex(NewInstanceIndex) {};
+	FPicrossBlock(const FPicrossBlock& Other) : State(Other.State), Transform(Other.Transform), MasterIndex(Other.MasterIndex), InstanceIndex(Other.InstanceIndex) {};
+	FPicrossBlock& operator=(const FPicrossBlock& Other) { State = Other.State; Transform = Other.Transform; MasterIndex = Other.MasterIndex, InstanceIndex = Other.InstanceIndex; return *this; };
 };

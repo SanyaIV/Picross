@@ -1,13 +1,12 @@
 // Copyright Sanya Larsson 2020
 
 
+#include "PicrossPawn.h"
 #include "Camera/CameraComponent.h"
 #include "Components/SphereComponent.h"
 #include "Engine/Classes/Kismet/GameplayStatics.h"
 #include "GameFramework/FloatingPawnMovement.h"
-#include "PicrossBlock.h"
 #include "PicrossGrid.h"
-#include "PicrossPawn.h"
 #include "PicrossPlayerController.h"
 
 // Sets default values
@@ -63,7 +62,7 @@ void APicrossPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	PlayerInputComponent->BindAxis("Move Up", this, &APicrossPawn::MoveUp);
 }
 
-APicrossBlock* APicrossPawn::GetPicrossBlockInView() const
+int32 APicrossPawn::GetBlockMasterIndexInView() const
 {
 	APicrossPlayerController* PlayerController = Cast<APicrossPlayerController>(GetController());
 	if (PlayerController)
@@ -71,14 +70,18 @@ APicrossBlock* APicrossPawn::GetPicrossBlockInView() const
 		FHitResult HitResult;
 		if (PlayerController->LineTraceSingleByChannelFromCenterOfScreen(HitResult, ReachDistance, ECollisionChannel::ECC_Visibility))
 		{
-			return Cast<APicrossBlock>(HitResult.GetActor());
+			UInstancedStaticMeshComponent* ISM = Cast<UInstancedStaticMeshComponent>(HitResult.GetComponent());
+			if (ISM && ISM->PerInstanceSMCustomData.IsValidIndex(HitResult.Item * ISM->NumCustomDataFloats))
+			{
+				return FMath::RoundHalfFromZero(ISM->PerInstanceSMCustomData[HitResult.Item * ISM->NumCustomDataFloats]);
+			}
 		}
 	}
 
-	return nullptr;
+	return -1;
 }
 
-APicrossBlock* APicrossPawn::GetPicrossBlockUnderMouse() const
+int32 APicrossPawn::GetBlockMasterIndexUnderMouse() const
 {
 	APicrossPlayerController* PlayerController = Cast<APicrossPlayerController>(GetController());
 	if (PlayerController)
@@ -90,11 +93,15 @@ APicrossBlock* APicrossPawn::GetPicrossBlockUnderMouse() const
 		FHitResult HitResult;
 		if (GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECC_Visibility))
 		{
-			return Cast<APicrossBlock>(HitResult.GetActor());
+			UInstancedStaticMeshComponent* ISM = Cast<UInstancedStaticMeshComponent>(HitResult.GetComponent());
+			if (ISM && ISM->PerInstanceSMCustomData.IsValidIndex(HitResult.Item * ISM->NumCustomDataFloats))
+			{
+				return FMath::RoundHalfFromZero(ISM->PerInstanceSMCustomData[HitResult.Item * ISM->NumCustomDataFloats]);
+			}
 		}
 	}
 
-	return nullptr;
+	return -1;
 }
 
 void APicrossPawn::EnableAlternativeInputMode()
@@ -121,41 +128,47 @@ void APicrossPawn::DisableAlternativeInputMode()
 
 void APicrossPawn::FillBlock()
 {
-	APicrossBlock* Block = nullptr;
-
-	switch (InputMode)
+	if (PicrossGrid)
 	{
-		case EInputMode::Default:
-			Block = GetPicrossBlockInView();
-			break;
-		case EInputMode::Alternative:
-			Block = GetPicrossBlockUnderMouse();
-			break;
-	}
+		int32 MasterIndex = 0;
 
-	if (Block)
-	{
-		Block->FillBlock();
+		switch (InputMode)
+		{
+			case EInputMode::Default:
+				MasterIndex = GetBlockMasterIndexInView();
+				break;
+			case EInputMode::Alternative:
+				MasterIndex = GetBlockMasterIndexUnderMouse();
+				break;
+		}
+
+		if (MasterIndex >= 0)
+		{
+			PicrossGrid->FillBlock(MasterIndex);
+		}
 	}
 }
 
 void APicrossPawn::CrossBlock()
 {
-	APicrossBlock* Block = nullptr;
-
-	switch (InputMode)
+	if (PicrossGrid)
 	{
-		case EInputMode::Default:
-			Block = GetPicrossBlockInView();
-			break;
-		case EInputMode::Alternative:
-			Block = GetPicrossBlockUnderMouse();
-			break;
-	}
+		int32 MasterIndex = 0;
 
-	if (Block)
-	{
-		Block->CrossBlock();
+		switch (InputMode)
+		{
+			case EInputMode::Default:
+				MasterIndex = GetBlockMasterIndexInView();
+				break;
+			case EInputMode::Alternative:
+				MasterIndex = GetBlockMasterIndexUnderMouse();
+				break;
+		}
+
+		if (MasterIndex >= 0)
+		{
+			PicrossGrid->CrossBlock(MasterIndex);
+		}
 	}
 }
 
@@ -163,7 +176,7 @@ void APicrossPawn::CycleSelectionRotation()
 {
 	if (!PicrossGrid) return;
 
-	PicrossGrid->Cycle2DRotation(GetPicrossBlockInView());
+	PicrossGrid->Cycle2DRotation(GetBlockMasterIndexInView());
 }
 
 void APicrossPawn::MoveSelectionUp()
