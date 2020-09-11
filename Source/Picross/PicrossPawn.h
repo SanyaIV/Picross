@@ -31,8 +31,8 @@ public:
 	virtual void BeginPlay() override;
 
 protected:
-	int32 GetBlockMasterIndexInView() const;
-	int32 GetBlockMasterIndexUnderMouse() const;
+	TPair<int32, int32> GetBlockInView() const;
+	TPair<int32, int32> GetBlockUnderMouse() const;
 
 	// Input mode
 	void EnableAlternativeInputMode();

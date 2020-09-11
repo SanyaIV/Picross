@@ -44,11 +44,12 @@ public:
 	UFUNCTION(BlueprintCallable, CallInEditor, Category = "Picross")
 	void ClearGrid();
 	void DestroyGrid();
+	bool IsLocked() const;
 
-	void FillBlock(int32 MasterIndex);
-	void CrossBlock(int32 MasterIndex);
+	void FillBlock(const int32 MasterIndex, const int32 InstanceIndex);
+	void CrossBlock(const int32 MasterIndex, const int32 InstanceIndex);
 	
-	void Cycle2DRotation(int32 MasterIndexPivot);
+	void Cycle2DRotation(const int32 MasterIndexPivot);
 	void Move2DSelectionUp();
 	void Move2DSelectionDown();
 
@@ -72,22 +73,36 @@ private:
 	void SetRotationYAxis() const;
 	void SetRotationZAxis() const;
 
-	void UpdateBlockState(FPicrossBlock& Block, EBlockState NewState);
+	void UpdateBlockState(FPicrossBlock& Block, const EBlockState NewState, const int32 PreviousInstanceIndex);
+	void CreateBlockInstance(const FPicrossBlock& Block) const;
 
 	UFUNCTION(BlueprintCallable, CallInEditor, Category = "Picross")
 	void EnableOnlyFilledBlocks() const;
 	UFUNCTION(BlueprintCallable, CallInEditor, Category = "Picross")
 	void EnableAllBlocks() const;
 	UFUNCTION(BlueprintCallable, CallInEditor, Category = "Picross")
-	void DisableAllBlocks(bool bMarkRenderStateDirty = true) const;
+	void DisableAllBlocks() const;
 
-	void LockAllBlocks() const;
+	void Lock();
+	void Unlock();
 	bool IsSolved() const;
-	void TrySolve() const;
+	void TrySolve() ;
 
-	UFUNCTION()
-	void OnBlockStateChanged();
-	
+	// A 3D array implemented in a 1D array. Use FArray3D to handle translation.
+	UPROPERTY()
+	TArray<FPicrossBlock> MasterGrid;
+	// GridSize for MasterGrid above.
+	FIntVector GridSize = FIntVector::ZeroValue;
+	// Instanced Static Mesh Components for each EBlockState
+	UPROPERTY()
+	TMap<EBlockState, UInstancedStaticMeshComponent*> BlockInstances;
+	// Meshes for each EBlockState
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Picross Block", meta = (AllowPrivateAccess = "true"))
+	TMap<EBlockState, UStaticMesh*> BlockMeshes;
+	// Materials for each EBlockState
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Picross Block", meta = (AllowPrivateAccess = "true"))
+	TMap<EBlockState, UMaterialInstance*> BlockMaterials;
+
 	// The distance to use between the blocks when spawning them.
 	UPROPERTY(EditAnywhere, Category = "Picross", meta = (AllowPrivateAccess = "true"))
 	float DistanceBetweenBlocks = 110.f;
@@ -97,15 +112,8 @@ private:
 	UPicrossPuzzleData* CurrentPuzzle = nullptr;
 	// The total amount of filled blocks in the puzzle solution.
 	int32 SolutionFilledBlocksCount = -1;
-
-	// A 3D array implemented in a 1D array. Use FArray3D to handle translation.
-	UPROPERTY()
-	TArray<FPicrossBlock> MasterGrid;
-	UPROPERTY();
-	TMap<EBlockState, UInstancedStaticMeshComponent*> BlockInstances;
-
-	// GridSize for MasterGrid above.
-	FIntVector GridSize = FIntVector::ZeroValue;
+	int32 CurrentlyFilledBlocksCount = 0;
+	
 	// GridSize to use when we can't load a puzzle. Not constexpr since we change this in editor to create new puzzles.
 	UPROPERTY(EditAnywhere, Category = "Picross", meta = (AllowPrivateAccess = "true"))
 	FIntVector DefaultGridSize {5,5,5};
@@ -118,6 +126,8 @@ private:
 	ESelectionAxis SelectionAxis = ESelectionAxis::All;
 	// Caches the last index used to pivot so we can do that operation without a new pivot-index.
 	FIntVector LastPivotXYZ = FIntVector::ZeroValue;
+	// Lock that we can set when solution has been found so the player can't edit finished puzzles.
+	bool bLocked = false;
 
 	// The blueprint widget class that we use to create the puzzle browser widget.
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Picross", meta = (AllowPrivateAccess = "true"))

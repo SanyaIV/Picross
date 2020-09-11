@@ -31,7 +31,7 @@ APicrossGrid::APicrossGrid()
 	{
 		if (Pair.Value)
 		{
-			Pair.Value->NumCustomDataFloats = 1;
+			Pair.Value->NumCustomDataFloats = 1; // This custom data represents the MasterIndex. Stored as float, cast to int32 required when reading.
 			Pair.Value->SetupAttachment(GetRootComponent());
 		}
 	}
@@ -41,6 +41,21 @@ APicrossGrid::APicrossGrid()
 void APicrossGrid::BeginPlay()
 {
 	Super::BeginPlay();
+
+	for (auto& Pair : BlockInstances)
+	{
+		if (Pair.Value)
+		{
+			if (ensureAlwaysMsgf(BlockMeshes.Contains(Pair.Key), TEXT("Block Meshes missing key: %s"), *UEnum::GetValueAsString<EBlockState>(Pair.Key))
+				&& ensureAlwaysMsgf(BlockMeshes.FindChecked(Pair.Key), TEXT("Block Meshes missing mesh for key: %s"), *UEnum::GetValueAsString<EBlockState>(Pair.Key))
+				&& ensureAlwaysMsgf(BlockMaterials.Contains(Pair.Key), TEXT("Block Materials missing key: %s"), *UEnum::GetValueAsString<EBlockState>(Pair.Key))
+				&& ensureAlwaysMsgf(BlockMaterials.FindChecked(Pair.Key), TEXT("Block Materials missing material for key: %s"), *UEnum::GetValueAsString<EBlockState>(Pair.Key)))
+			{
+				Pair.Value->SetStaticMesh(BlockMeshes[Pair.Key]);
+				Pair.Value->SetMaterial(0, BlockMaterials[Pair.Key]);
+			}
+		}
+	}
 
 	CreatePuzzleBrowser();
 }
@@ -100,9 +115,11 @@ TArray<FAssetData> APicrossGrid::GetAllPuzzles() const
 
 void APicrossGrid::CreateGrid()
 {
+	Unlock();
 	SelectionAxis = ESelectionAxis::All;
 	LastPivotXYZ = FIntVector::ZeroValue;
 	SolutionFilledBlocksCount = CurrentPuzzle ? Algo::Count(CurrentPuzzle->GetSolution(), true) : -1;
+	CurrentlyFilledBlocksCount = 0;
 	GridSize = CurrentPuzzle ? CurrentPuzzle->GetGridSize() : DefaultGridSize;
 	verify(FArray3D::ValidateDimensions(GridSize));
 
@@ -134,9 +151,8 @@ void APicrossGrid::CreateGrid()
 				int32 MasterIndex = FArray3D::TranslateTo1D(GridSize, X, Y, Z);
 				if (MasterGrid.IsValidIndex(MasterIndex))
 				{
-					FPicrossBlock& Block = MasterGrid[MasterIndex] = FPicrossBlock( EBlockState::Clear, FTransform(GetActorRotation(), BlockPosition, FVector::OneVector), MasterIndex, -1 );
-					Block.InstanceIndex = BlockInstances[Block.State]->AddInstanceWorldSpace(Block.Transform);
-					BlockInstances[Block.State]->SetCustomDataValue(Block.InstanceIndex, 0, Block.MasterIndex);
+					FPicrossBlock& Block = MasterGrid[MasterIndex] = FPicrossBlock{ EBlockState::Clear, FTransform(GetActorRotation(), BlockPosition, FVector::OneVector), MasterIndex };
+					CreateBlockInstance(Block);
 				}
 			}
 		}
@@ -147,9 +163,14 @@ void APicrossGrid::CreateGrid()
 
 void APicrossGrid::ClearGrid()
 {
+	if (IsLocked()) return;
+
+	DisableAllBlocks();
+
 	for (FPicrossBlock& Block : MasterGrid)
 	{
-		UpdateBlockState(Block, EBlockState::Clear);
+		Block.State = EBlockState::Clear;
+		CreateBlockInstance(Block);
 	}
 }
 
@@ -166,66 +187,59 @@ void APicrossGrid::DestroyGrid()
 	MasterGrid.Empty();
 }
 
-void APicrossGrid::FillBlock(int32 MasterIndex)
+void APicrossGrid::FillBlock(const int32 MasterIndex, const int32 InstanceIndex)
 {
-	if (MasterGrid.IsValidIndex(MasterIndex))
+	if (!IsLocked() && MasterGrid.IsValidIndex(MasterIndex))
 	{
 		FPicrossBlock& Block = MasterGrid[MasterIndex];
-		UpdateBlockState(Block, (Block.State != EBlockState::Filled) ? EBlockState::Filled : EBlockState::Clear);
+		UpdateBlockState(Block, (Block.State != EBlockState::Filled) ? EBlockState::Filled : EBlockState::Clear, InstanceIndex);
 	}
 }
 
-void APicrossGrid::CrossBlock(int32 MasterIndex)
+void APicrossGrid::CrossBlock(const int32 MasterIndex, const int32 InstanceIndex)
 {
-	if (MasterGrid.IsValidIndex(MasterIndex))
+	if (!IsLocked() && MasterGrid.IsValidIndex(MasterIndex))
 	{
 		FPicrossBlock& Block = MasterGrid[MasterIndex];
-		UpdateBlockState(Block, (Block.State != EBlockState::Crossed) ? EBlockState::Crossed : EBlockState::Clear);
+		UpdateBlockState(Block, (Block.State != EBlockState::Crossed) ? EBlockState::Crossed : EBlockState::Clear, InstanceIndex);
 	}
 }
 
 void APicrossGrid::EnableOnlyFilledBlocks() const
 {
-	DisableAllBlocks(false);
-	UInstancedStaticMeshComponent* ISM = BlockInstances[EBlockState::Filled];
-	for (int32 InstanceIndex = 0; InstanceIndex < ISM->GetInstanceCount(); ++InstanceIndex)
+	if (IsLocked()) return;
+
+	DisableAllBlocks();
+
+	for (const FPicrossBlock& Block : MasterGrid)
 	{
-		int32 MasterIndex = ISM->PerInstanceSMCustomData[InstanceIndex * ISM->NumCustomDataFloats];
-		ISM->UpdateInstanceTransform(InstanceIndex, MasterGrid[MasterIndex].Transform, true, false, true);
-	}
-	
-	for (auto& Pair : BlockInstances)
-	{
-		Pair.Value->MarkRenderStateDirty();
+		if (Block.State == EBlockState::Filled)
+		{
+			CreateBlockInstance(Block);
+		}
 	}
 }
 
-void APicrossGrid::UpdateBlockState(FPicrossBlock& Block, EBlockState NewState)
+void APicrossGrid::UpdateBlockState(FPicrossBlock& Block, const EBlockState NewState, const int32 PreviousInstanceIndex)
 {
+	if (IsLocked()) return;
+
 	if (Block.State != NewState)
 	{
-		EBlockState PreviousState = Block.State;
-		UInstancedStaticMeshComponent* PreviousISM = BlockInstances[PreviousState];
-		int32 InstanceIndexToRemove = Block.InstanceIndex;
+		const EBlockState PreviousState = Block.State;
+		BlockInstances[PreviousState]->RemoveInstance(PreviousInstanceIndex);
 
-		if (BlockInstances[PreviousState]->RemoveInstance(Block.InstanceIndex))
-		{
-			for (int32 InstanceIndex = InstanceIndexToRemove; InstanceIndex < PreviousISM->GetInstanceCount(); ++InstanceIndex)
-			{
-				int32 OtherMasterIndex = FMath::RoundHalfFromZero(PreviousISM->PerInstanceSMCustomData[InstanceIndex * PreviousISM->NumCustomDataFloats]);
-				MasterGrid[OtherMasterIndex].InstanceIndex -= 1;
-			}
+		Block.State = NewState;
+		CreateBlockInstance(Block);
 
-			Block.InstanceIndex = BlockInstances[NewState]->AddInstanceWorldSpace(Block.Transform);
-			BlockInstances[NewState]->SetCustomDataValue(Block.InstanceIndex, 0, Block.MasterIndex);
-			Block.State = NewState;
-
-			if (PreviousState == EBlockState::Filled || NewState == EBlockState::Filled)
-			{
-				OnBlockStateChanged();
-			}
-		}
+		CurrentlyFilledBlocksCount += PreviousState == EBlockState::Filled ? -1 : NewState == EBlockState::Filled ? 1 : 0;
+		TrySolve();
 	}
+}
+
+void APicrossGrid::CreateBlockInstance(const FPicrossBlock& Block) const
+{
+	BlockInstances[Block.State]->SetCustomDataValue(BlockInstances[Block.State]->AddInstanceWorldSpace(Block.Transform), 0, static_cast<float>(Block.MasterIndex));
 }
 
 void APicrossGrid::GenerateNumbers() const
@@ -310,8 +324,10 @@ void APicrossGrid::CreateTextRender(FVector WorldLocation, FRotator WorldRotatio
 	}*/
 }
 
-void APicrossGrid::Cycle2DRotation(int32 MasterIndexPivot)
+void APicrossGrid::Cycle2DRotation(const int32 MasterIndexPivot)
 {
+	if (IsLocked()) return;
+
 	SelectionAxis = (SelectionAxis == ESelectionAxis::All ? ESelectionAxis::Z : SelectionAxis == ESelectionAxis::Z ? ESelectionAxis::Y : SelectionAxis == ESelectionAxis::Y ? ESelectionAxis::X : ESelectionAxis::All);
 
 	LastPivotXYZ = MasterIndexPivot >= 0 ? FArray3D::TranslateTo3D(GridSize, MasterIndexPivot) : LastPivotXYZ;
@@ -327,7 +343,9 @@ void APicrossGrid::Cycle2DRotation(int32 MasterIndexPivot)
 
 void APicrossGrid::SetRotationXAxis() const
 {
-	DisableAllBlocks(false);
+	if (IsLocked()) return;
+
+	DisableAllBlocks();
 
 	for (int32 Z = 0; Z < GridSize.Z; ++Z)
 	{
@@ -336,21 +354,17 @@ void APicrossGrid::SetRotationXAxis() const
 			int32 MasterIndex = FArray3D::TranslateTo1D(GridSize, LastPivotXYZ.X, Y, Z);
 			if (MasterGrid.IsValidIndex(MasterIndex))
 			{
-				const FPicrossBlock& Block = MasterGrid[MasterIndex];
-				BlockInstances[Block.State]->UpdateInstanceTransform(Block.InstanceIndex, Block.Transform, true, true, true);
+				CreateBlockInstance(MasterGrid[MasterIndex]);
 			}
 		}
-	}
-
-	for (auto& Pair : BlockInstances)
-	{
-		Pair.Value->MarkRenderStateDirty();
 	}
 }
 
 void APicrossGrid::SetRotationYAxis() const
 {
-	DisableAllBlocks(false);
+	if (IsLocked()) return;
+
+	DisableAllBlocks();
 
 	for (int32 Z = 0; Z < GridSize.Z; ++Z)
 	{
@@ -359,21 +373,17 @@ void APicrossGrid::SetRotationYAxis() const
 			int32 MasterIndex = FArray3D::TranslateTo1D(GridSize, X, LastPivotXYZ.Y, Z);
 			if (MasterGrid.IsValidIndex(MasterIndex))
 			{
-				const FPicrossBlock& Block = MasterGrid[MasterIndex];
-				BlockInstances[Block.State]->UpdateInstanceTransform(Block.InstanceIndex, Block.Transform, true, true, true);
+				CreateBlockInstance(MasterGrid[MasterIndex]);
 			}
 		}
-	}
-
-	for (auto& Pair : BlockInstances)
-	{
-		Pair.Value->MarkRenderStateDirty();
 	}
 }
 
 void APicrossGrid::SetRotationZAxis() const
 {
-	DisableAllBlocks(false);
+	if (IsLocked()) return;
+
+	DisableAllBlocks();
 
 	for (int32 Y = 0; Y < GridSize.Y; ++Y)
 	{
@@ -382,51 +392,55 @@ void APicrossGrid::SetRotationZAxis() const
 			int32 MasterIndex = FArray3D::TranslateTo1D(GridSize, X, Y, LastPivotXYZ.Z);
 			if (MasterGrid.IsValidIndex(MasterIndex))
 			{
-				const FPicrossBlock& Block = MasterGrid[MasterIndex];
-				BlockInstances[Block.State]->UpdateInstanceTransform(Block.InstanceIndex, Block.Transform, true, false, true);
+				CreateBlockInstance(MasterGrid[MasterIndex]);
 			}
 		}
-	}
-
-	for (auto& Pair : BlockInstances)
-	{
-		Pair.Value->MarkRenderStateDirty();
 	}
 }
 
 void APicrossGrid::EnableAllBlocks() const
 {
+	if (IsLocked()) return;
+
+	DisableAllBlocks();
+
 	for (const FPicrossBlock& Block : MasterGrid)
 	{
-		BlockInstances[Block.State]->UpdateInstanceTransform(Block.InstanceIndex, Block.Transform, true, false, true);
-	}
-
-	for (auto& Pair : BlockInstances)
-	{
-		Pair.Value->MarkRenderStateDirty();
+		CreateBlockInstance(Block);
 	}
 }
 
-void APicrossGrid::DisableAllBlocks(bool bMarkRenderStateDirty) const
+void APicrossGrid::DisableAllBlocks() const
 {
+	if (IsLocked()) return;
+
 	for (auto& Pair : BlockInstances)
 	{
 		if (Pair.Value)
 		{
-			static const FTransform DisabledTransform{ FRotator::ZeroRotator, FVector{ 0.f, 0.f, -99999.f}, FVector::OneVector };
-			Pair.Value->BatchUpdateInstancesTransform(0, Pair.Value->GetInstanceCount(), DisabledTransform, true, bMarkRenderStateDirty, true);
+			Pair.Value->ClearInstances();
 		}
 	}
 }
 
-void APicrossGrid::LockAllBlocks() const
+bool APicrossGrid::IsLocked() const
 {
-	// bLocked = true;
+	return bLocked;
+}
+
+void APicrossGrid::Lock()
+{
+	bLocked = true;
+}
+
+void APicrossGrid::Unlock()
+{
+	bLocked = false;
 }
 
 bool APicrossGrid::IsSolved() const
 {
-	if (CurrentPuzzle)
+	if (CurrentPuzzle && CurrentlyFilledBlocksCount == SolutionFilledBlocksCount)
 	{
 		const TArray<bool>& Solution = CurrentPuzzle->GetSolution();
 
@@ -447,25 +461,19 @@ bool APicrossGrid::IsSolved() const
 	return false;
 }
 
-void APicrossGrid::TrySolve() const
+void APicrossGrid::TrySolve()
 {
 	if (IsSolved())
 	{
 		EnableOnlyFilledBlocks();
-		LockAllBlocks();
-	}
-}
-
-void APicrossGrid::OnBlockStateChanged()
-{
-	if (BlockInstances[EBlockState::Filled]->GetInstanceCount() == SolutionFilledBlocksCount)
-	{
-		TrySolve();
+		Lock();
 	}
 }
 
 void APicrossGrid::Move2DSelectionUp()
 {
+	if (IsLocked()) return;
+
 	switch (SelectionAxis)
 	{
 		case ESelectionAxis::X:
@@ -485,6 +493,8 @@ void APicrossGrid::Move2DSelectionUp()
 
 void APicrossGrid::Move2DSelectionDown()
 {
+	if (IsLocked()) return;
+
 	switch (SelectionAxis)
 	{
 		case ESelectionAxis::X:

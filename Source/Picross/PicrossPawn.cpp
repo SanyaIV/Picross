@@ -62,7 +62,7 @@ void APicrossPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	PlayerInputComponent->BindAxis("Move Up", this, &APicrossPawn::MoveUp);
 }
 
-int32 APicrossPawn::GetBlockMasterIndexInView() const
+TPair<int32, int32> APicrossPawn::GetBlockInView() const
 {
 	APicrossPlayerController* PlayerController = Cast<APicrossPlayerController>(GetController());
 	if (PlayerController)
@@ -73,15 +73,15 @@ int32 APicrossPawn::GetBlockMasterIndexInView() const
 			UInstancedStaticMeshComponent* ISM = Cast<UInstancedStaticMeshComponent>(HitResult.GetComponent());
 			if (ISM && ISM->PerInstanceSMCustomData.IsValidIndex(HitResult.Item * ISM->NumCustomDataFloats))
 			{
-				return FMath::RoundHalfFromZero(ISM->PerInstanceSMCustomData[HitResult.Item * ISM->NumCustomDataFloats]);
+				return TPair<int32, int32>{ static_cast<int32>(ISM->PerInstanceSMCustomData[HitResult.Item * ISM->NumCustomDataFloats]), HitResult.Item };
 			}
 		}
 	}
 
-	return -1;
+	return TPair<int32, int32>{ -1, -1 };
 }
 
-int32 APicrossPawn::GetBlockMasterIndexUnderMouse() const
+TPair<int32, int32> APicrossPawn::GetBlockUnderMouse() const
 {
 	APicrossPlayerController* PlayerController = Cast<APicrossPlayerController>(GetController());
 	if (PlayerController)
@@ -96,12 +96,12 @@ int32 APicrossPawn::GetBlockMasterIndexUnderMouse() const
 			UInstancedStaticMeshComponent* ISM = Cast<UInstancedStaticMeshComponent>(HitResult.GetComponent());
 			if (ISM && ISM->PerInstanceSMCustomData.IsValidIndex(HitResult.Item * ISM->NumCustomDataFloats))
 			{
-				return FMath::RoundHalfFromZero(ISM->PerInstanceSMCustomData[HitResult.Item * ISM->NumCustomDataFloats]);
+				return TPair<int32, int32>{ static_cast<int32>(ISM->PerInstanceSMCustomData[HitResult.Item * ISM->NumCustomDataFloats]), HitResult.Item };
 			}
 		}
 	}
 
-	return -1;
+	return TPair<int32, int32>{ -1, -1 };
 }
 
 void APicrossPawn::EnableAlternativeInputMode()
@@ -130,21 +130,21 @@ void APicrossPawn::FillBlock()
 {
 	if (PicrossGrid)
 	{
-		int32 MasterIndex = 0;
+		TPair<int32, int32> Indexes { -1, -1 };
 
 		switch (InputMode)
 		{
 			case EInputMode::Default:
-				MasterIndex = GetBlockMasterIndexInView();
+				Indexes = GetBlockInView();
 				break;
 			case EInputMode::Alternative:
-				MasterIndex = GetBlockMasterIndexUnderMouse();
+				Indexes = GetBlockUnderMouse();
 				break;
 		}
 
-		if (MasterIndex >= 0)
+		if (Indexes.Key >= 0)
 		{
-			PicrossGrid->FillBlock(MasterIndex);
+			PicrossGrid->FillBlock(Indexes.Key, Indexes.Value);
 		}
 	}
 }
@@ -153,21 +153,21 @@ void APicrossPawn::CrossBlock()
 {
 	if (PicrossGrid)
 	{
-		int32 MasterIndex = 0;
+		TPair<int32, int32> Indexes{ -1, -1 };
 
 		switch (InputMode)
 		{
 			case EInputMode::Default:
-				MasterIndex = GetBlockMasterIndexInView();
+				Indexes = GetBlockInView();
 				break;
 			case EInputMode::Alternative:
-				MasterIndex = GetBlockMasterIndexUnderMouse();
+				Indexes = GetBlockUnderMouse();
 				break;
 		}
 
-		if (MasterIndex >= 0)
+		if (Indexes.Key >= 0)
 		{
-			PicrossGrid->CrossBlock(MasterIndex);
+			PicrossGrid->CrossBlock(Indexes.Key, Indexes.Value);
 		}
 	}
 }
@@ -176,7 +176,7 @@ void APicrossPawn::CycleSelectionRotation()
 {
 	if (!PicrossGrid) return;
 
-	PicrossGrid->Cycle2DRotation(GetBlockMasterIndexInView());
+	PicrossGrid->Cycle2DRotation(GetBlockInView().Key);
 }
 
 void APicrossPawn::MoveSelectionUp()
