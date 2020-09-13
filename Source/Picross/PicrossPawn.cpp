@@ -46,8 +46,10 @@ void APicrossPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	PlayerInputComponent->BindAction("Alternative Input Mode", EInputEvent::IE_Released, this, &APicrossPawn::DisableAlternativeInputMode);
 
 	// Actions
-	PlayerInputComponent->BindAction("Fill Block", EInputEvent::IE_Pressed, this, &APicrossPawn::FillBlock);
-	PlayerInputComponent->BindAction("Cross Block", EInputEvent::IE_Pressed, this, &APicrossPawn::CrossBlock);
+	PlayerInputComponent->BindAction("Fill Block", EInputEvent::IE_Pressed, this, &APicrossPawn::SaveStartBlock);
+	PlayerInputComponent->BindAction("Fill Block", EInputEvent::IE_Released, this, &APicrossPawn::FillBlocks);
+	PlayerInputComponent->BindAction("Cross Block", EInputEvent::IE_Pressed, this, &APicrossPawn::SaveStartBlock);
+	PlayerInputComponent->BindAction("Cross Block", EInputEvent::IE_Released, this, &APicrossPawn::CrossBlocks);
 	PlayerInputComponent->BindAction("Move Selection Up", EInputEvent::IE_Pressed, this, &APicrossPawn::MoveSelectionUp);
 	PlayerInputComponent->BindAction("Move Selection Down", EInputEvent::IE_Pressed, this, &APicrossPawn::MoveSelectionDown);
 	PlayerInputComponent->BindAction("Cycle Selection Rotation", EInputEvent::IE_Pressed, this, &APicrossPawn::CycleSelectionRotation);
@@ -62,7 +64,7 @@ void APicrossPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	PlayerInputComponent->BindAxis("Move Up", this, &APicrossPawn::MoveUp);
 }
 
-TPair<int32, int32> APicrossPawn::GetBlockInView() const
+int32 APicrossPawn::GetBlockInView() const
 {
 	APicrossPlayerController* PlayerController = Cast<APicrossPlayerController>(GetController());
 	if (PlayerController)
@@ -73,15 +75,15 @@ TPair<int32, int32> APicrossPawn::GetBlockInView() const
 			UInstancedStaticMeshComponent* ISM = Cast<UInstancedStaticMeshComponent>(HitResult.GetComponent());
 			if (ISM && ISM->PerInstanceSMCustomData.IsValidIndex(HitResult.Item * ISM->NumCustomDataFloats))
 			{
-				return TPair<int32, int32>{ static_cast<int32>(ISM->PerInstanceSMCustomData[HitResult.Item * ISM->NumCustomDataFloats]), HitResult.Item };
+				return static_cast<int32>(ISM->PerInstanceSMCustomData[HitResult.Item * ISM->NumCustomDataFloats]);
 			}
 		}
 	}
 
-	return TPair<int32, int32>{ -1, -1 };
+	return INDEX_NONE;
 }
 
-TPair<int32, int32> APicrossPawn::GetBlockUnderMouse() const
+int32 APicrossPawn::GetBlockUnderMouse() const
 {
 	APicrossPlayerController* PlayerController = Cast<APicrossPlayerController>(GetController());
 	if (PlayerController)
@@ -96,12 +98,12 @@ TPair<int32, int32> APicrossPawn::GetBlockUnderMouse() const
 			UInstancedStaticMeshComponent* ISM = Cast<UInstancedStaticMeshComponent>(HitResult.GetComponent());
 			if (ISM && ISM->PerInstanceSMCustomData.IsValidIndex(HitResult.Item * ISM->NumCustomDataFloats))
 			{
-				return TPair<int32, int32>{ static_cast<int32>(ISM->PerInstanceSMCustomData[HitResult.Item * ISM->NumCustomDataFloats]), HitResult.Item };
+				return static_cast<int32>(ISM->PerInstanceSMCustomData[HitResult.Item * ISM->NumCustomDataFloats]);
 			}
 		}
 	}
 
-	return TPair<int32, int32>{ -1, -1 };
+	return INDEX_NONE;
 }
 
 void APicrossPawn::EnableAlternativeInputMode()
@@ -126,49 +128,57 @@ void APicrossPawn::DisableAlternativeInputMode()
 	}
 }
 
-void APicrossPawn::FillBlock()
+void APicrossPawn::SaveStartBlock()
 {
-	if (PicrossGrid)
+	switch (InputMode)
 	{
-		TPair<int32, int32> Indexes { -1, -1 };
-
-		switch (InputMode)
-		{
-			case EInputMode::Default:
-				Indexes = GetBlockInView();
-				break;
-			case EInputMode::Alternative:
-				Indexes = GetBlockUnderMouse();
-				break;
-		}
-
-		if (Indexes.Key >= 0)
-		{
-			PicrossGrid->FillBlock(Indexes.Key, Indexes.Value);
-		}
+	case EInputMode::Default:
+		StartBlockIndex = GetBlockInView();
+		break;
+	case EInputMode::Alternative:
+		StartBlockIndex = GetBlockUnderMouse();
+		break;
 	}
 }
 
-void APicrossPawn::CrossBlock()
+
+void APicrossPawn::FillBlocks()
 {
 	if (PicrossGrid)
 	{
-		TPair<int32, int32> Indexes{ -1, -1 };
+		int32 EndBlockIndex = INDEX_NONE;
 
 		switch (InputMode)
 		{
 			case EInputMode::Default:
-				Indexes = GetBlockInView();
+				EndBlockIndex = GetBlockInView();
 				break;
 			case EInputMode::Alternative:
-				Indexes = GetBlockUnderMouse();
+				EndBlockIndex = GetBlockUnderMouse();
 				break;
 		}
 
-		if (Indexes.Key >= 0)
+		PicrossGrid->UpdateBlocks(StartBlockIndex, EndBlockIndex, EBlockState::Filled);
+	}
+}
+
+void APicrossPawn::CrossBlocks()
+{
+	if (PicrossGrid)
+	{
+		int32 EndBlockIndex = INDEX_NONE;
+
+		switch (InputMode)
 		{
-			PicrossGrid->CrossBlock(Indexes.Key, Indexes.Value);
+			case EInputMode::Default:
+				EndBlockIndex = GetBlockInView();
+				break;
+			case EInputMode::Alternative:
+				EndBlockIndex = GetBlockUnderMouse();
+				break;
 		}
+
+		PicrossGrid->UpdateBlocks(StartBlockIndex, EndBlockIndex, EBlockState::Crossed);
 	}
 }
 
@@ -176,7 +186,7 @@ void APicrossPawn::CycleSelectionRotation()
 {
 	if (!PicrossGrid) return;
 
-	PicrossGrid->Cycle2DRotation(GetBlockInView().Key);
+	PicrossGrid->Cycle2DRotation(GetBlockInView());
 }
 
 void APicrossPawn::MoveSelectionUp()

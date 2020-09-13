@@ -31,16 +31,17 @@ public:
 	virtual void BeginPlay() override;
 
 protected:
-	TPair<int32, int32> GetBlockInView() const;
-	TPair<int32, int32> GetBlockUnderMouse() const;
+	int32 GetBlockInView() const;
+	int32 GetBlockUnderMouse() const;
 
 	// Input mode
 	void EnableAlternativeInputMode();
 	void DisableAlternativeInputMode();
 	
 	// Picross Actions
-	void FillBlock();
-	void CrossBlock();
+	void SaveStartBlock();
+	void FillBlocks();
+	void CrossBlocks();
 	void CycleSelectionRotation();
 	void MoveSelectionUp();
 	void MoveSelectionDown();
@@ -66,6 +67,7 @@ private:
 
 	UPROPERTY()
 	class APicrossGrid* PicrossGrid = nullptr;
+	int32 StartBlockIndex = INDEX_NONE;
 
 	UPROPERTY()
 	EInputMode InputMode = EInputMode::Default;

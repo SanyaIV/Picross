@@ -2,6 +2,7 @@
 
 #include "PicrossGrid.h"
 #include "Algo/Count.h"
+#include "Algo/ForEach.h"
 #include "Algo/Reverse.h"
 #include "AssetDataObject.h"
 #include "AssetToolsModule.h"
@@ -10,6 +11,7 @@
 #include "Components/TextBlock.h"
 #include "Engine/AssetManager.h"
 #include "Engine/Engine.h"
+#include "Engine/TextRenderActor.h"
 #include "IAssetTools.h"
 #include "UnrealEd.h"
 #include "PicrossPuzzleData.h"
@@ -187,21 +189,27 @@ void APicrossGrid::DestroyGrid()
 	MasterGrid.Empty();
 }
 
-void APicrossGrid::FillBlock(const int32 MasterIndex, const int32 InstanceIndex)
+void APicrossGrid::UpdateBlocks(const int32 StartMasterIndex, const int32 EndMasterIndex, const EBlockState Action)
 {
-	if (!IsLocked() && MasterGrid.IsValidIndex(MasterIndex))
-	{
-		FPicrossBlock& Block = MasterGrid[MasterIndex];
-		UpdateBlockState(Block, (Block.State != EBlockState::Filled) ? EBlockState::Filled : EBlockState::Clear, InstanceIndex);
-	}
-}
+	if (StartMasterIndex == INDEX_NONE || EndMasterIndex == INDEX_NONE) return;
 
-void APicrossGrid::CrossBlock(const int32 MasterIndex, const int32 InstanceIndex)
-{
-	if (!IsLocked() && MasterGrid.IsValidIndex(MasterIndex))
+	const EBlockState PreviousState = MasterGrid[StartMasterIndex].State;
+	const EBlockState NewState = Action == EBlockState::Filled ? (PreviousState != EBlockState::Filled ? EBlockState::Filled : EBlockState::Clear) : (PreviousState != EBlockState::Crossed ? EBlockState::Crossed : EBlockState::Clear);
+	const FIntVector StartIndex = FArray3D::TranslateTo3D(GridSize, StartMasterIndex);
+	const FIntVector EndIndex = FArray3D::TranslateTo3D(GridSize, EndMasterIndex);
+
+	for (int32 Z = (StartIndex.Z < EndIndex.Z ? StartIndex.Z : EndIndex.Z); Z <= (StartIndex.Z < EndIndex.Z ? EndIndex.Z : StartIndex.Z); ++Z)
 	{
-		FPicrossBlock& Block = MasterGrid[MasterIndex];
-		UpdateBlockState(Block, (Block.State != EBlockState::Crossed) ? EBlockState::Crossed : EBlockState::Clear, InstanceIndex);
+		for (int32 Y = (StartIndex.Y < EndIndex.Y ? StartIndex.Y : EndIndex.Y); Y <= (StartIndex.Y < EndIndex.Y ? EndIndex.Y : StartIndex.Y); ++Y)
+		{
+			for (int32 X = (StartIndex.X < EndIndex.X ? StartIndex.X : EndIndex.X); X <= (StartIndex.X < EndIndex.X ? EndIndex.X : StartIndex.X); ++X)
+			{
+				if (MasterGrid[FArray3D::TranslateTo1D(GridSize, X, Y, Z)].State == PreviousState)
+				{
+					UpdateBlockState(MasterGrid[FArray3D::TranslateTo1D(GridSize, X, Y, Z)], NewState, BlockInstances[PreviousState]->PerInstanceSMCustomData.IndexOfByKey(static_cast<float>(FArray3D::TranslateTo1D(GridSize, X, Y, Z))));
+				}
+			}
+		}
 	}
 }
 
@@ -224,7 +232,7 @@ void APicrossGrid::UpdateBlockState(FPicrossBlock& Block, const EBlockState NewS
 {
 	if (IsLocked()) return;
 
-	if (Block.State != NewState)
+	if (Block.State != NewState && PreviousInstanceIndex != INDEX_NONE)
 	{
 		const EBlockState PreviousState = Block.State;
 		BlockInstances[PreviousState]->RemoveInstance(PreviousInstanceIndex);
@@ -242,33 +250,50 @@ void APicrossGrid::CreateBlockInstance(const FPicrossBlock& Block) const
 	BlockInstances[Block.State]->SetCustomDataValue(BlockInstances[Block.State]->AddInstanceWorldSpace(Block.Transform), 0, static_cast<float>(Block.MasterIndex));
 }
 
-void APicrossGrid::GenerateNumbers() const
+void APicrossGrid::GenerateNumbers()
 {
+	Algo::ForEachIf(TextRenderActors, IsValid, PROJECTION_MEMBER(AActor, Destroy));
+	TextRenderActors.Empty();
+
 	GenerateNumbersForAxis(ESelectionAxis::X);
 	GenerateNumbersForAxis(ESelectionAxis::Y);
 	GenerateNumbersForAxis(ESelectionAxis::Z);
 }
 
-void APicrossGrid::GenerateNumbersForAxis(ESelectionAxis Axis) const
+void APicrossGrid::GenerateNumbersForAxis(ESelectionAxis Axis)
 {
-	/*if (!CurrentPuzzle) return;
+	if (!CurrentPuzzle) return;
 
 	const TArray<bool>& Solution = CurrentPuzzle->GetSolution();
 
-	for (int32 Axis1 = 0; Axis1 < (Axis == ESelectionAxis::X ? GridSize.Y : GridSize.X); ++Axis1)
+	// Axis1 is Y-axis if we're generating for X-axis, otherwise it's the X-axis.
+	int32 Axis1Size = (Axis == ESelectionAxis::Z ? GridSize.Y : GridSize.Z);
+	for (int32 Axis1 = 0; Axis1 < Axis1Size; ++Axis1)
 	{
-		for (int32 Axis2 = 0; Axis2 < (Axis == ESelectionAxis::Z ? GridSize.Y : GridSize.Z); ++Axis2)
+		// Axis2 is either Y-axis if we're generating for Z-Axis, otherwise it's the Z-axis.
+		int32 Axis2Size = (Axis == ESelectionAxis::Z ? GridSize.Y : GridSize.Z);
+		for (int32 Axis2 = 0; Axis2 < Axis2Size; ++Axis2)
 		{
 			FFormatOrderedArguments Numbers;
 			int32 Sum = 0;
 
-			for (int32 Axis3 = (Axis == ESelectionAxis::Z ? GridSize.Z -1 : 0); (Axis == ESelectionAxis::Z ? Axis3 >= 0 : Axis == ESelectionAxis::X ? Axis3 < GridSize.X : Axis3 < GridSize.Y); Axis == ESelectionAxis::Z ? --Axis3 : ++Axis3)
+			// Axis3 is the axis we're generating numbers for.
+			int32 Axis3Size = (Axis == ESelectionAxis::Z ? GridSize.Z : Axis == ESelectionAxis::X ? GridSize.X : GridSize.Y);
+			for (int32 Axis3 = 0; Axis3 < Axis3Size; ++Axis3)
 			{
+				// De-anonymize Axis1,Axis2,Axis3 into their named version (X,Y,Z)
 				FIntVector XYZ = Axis == ESelectionAxis::X ? FIntVector(Axis3, Axis1, Axis2) : Axis == ESelectionAxis::Y ? FIntVector(Axis1, Axis3, Axis2) : FIntVector(Axis1, Axis2, Axis3);
 
-				if (Solution[FArray3D::TranslateTo1D(GridSize, XYZ)])
+				// Count the filled blocks, adding the results to the Numbers "array".
+				bool bCountBlock = Solution[FArray3D::TranslateTo1D(GridSize, XYZ)];
+				if (bCountBlock)
 				{
 					++Sum;
+
+					if (Axis3 == Axis3Size - 1)
+					{
+						Numbers.Add(Sum);
+					}
 				}
 				else if (Sum > 0)
 				{
@@ -276,43 +301,62 @@ void APicrossGrid::GenerateNumbersForAxis(ESelectionAxis Axis) const
 					Sum = 0;
 				}
 			}
-
-			if (Sum > 0)
+			
+			// If Z-axis we reverse the numbers since we counted them from the bottom instead of the top.
+			if (Axis == ESelectionAxis::Z)
 			{
-				Numbers.Add(Sum);
+				Algo::Reverse(Numbers);
 			}
 
-			FIntVector XYZ = Axis == ESelectionAxis::X ? FIntVector(0, Axis1, Axis2) : Axis == ESelectionAxis::Y ? FIntVector(Axis1, 0, Axis2) : FIntVector(Axis1, Axis2, GridSize.Z - 1);
-			APicrossBlock* Block = MasterGrid[FArray3D::TranslateTo1D(GridSize, XYZ)];
+			// Generate text from array of numbers with either a comma delimiter or new-line if Z-axis
+			const FText Delimiter = FText::FromString(Axis == ESelectionAxis::Z ? TEXT("\n") : TEXT(", "));
+			const FText Text1 = FText::Join(Delimiter, Numbers);
 
-			FVector RelativeLocation = Axis == ESelectionAxis::X ? FVector(-75.f, 0.f, 50.f) : Axis == ESelectionAxis::Y ? FVector(0.f, -75.f, 50.f) : FVector(0.f, 0.f, 115.f);
-			FRotator RelativeRotation = Axis == ESelectionAxis::X ? FRotator(0.f, 90.f, 0.f) : Axis == ESelectionAxis::Y ? FRotator(0.f, 180.f, 0.f) : FRotator(0.f, 90.f, 0.f);
-			FText Text = FText::Join(FText::FromString(Axis == ESelectionAxis::Z ? TEXT("\n") : TEXT(", ")), Numbers);
-			FColor Color = Axis == ESelectionAxis::Z ? FColor::Blue : Axis == ESelectionAxis::Y ? FColor::Green : FColor::Red;
-			EHorizTextAligment HAlignment = Axis == ESelectionAxis::Z ? EHorizTextAligment::EHTA_Center : EHorizTextAligment::EHTA_Right;
-			EVerticalTextAligment VAlignment = Axis == ESelectionAxis::Z ? EVerticalTextAligment::EVRTA_TextBottom : EVerticalTextAligment::EVRTA_TextCenter;
+			// Select color based on axis.
+			const FColor Color = Axis == ESelectionAxis::Z ? FColor::Blue : Axis == ESelectionAxis::Y ? FColor::Green : FColor::Red;
+
+			// Select text alignment based on axis.
+			const EHorizTextAligment HAlignment1 = Axis == ESelectionAxis::Z ? EHorizTextAligment::EHTA_Center : EHorizTextAligment::EHTA_Right;
+			const EVerticalTextAligment VAlignment = Axis == ESelectionAxis::Z ? EVerticalTextAligment::EVRTA_TextBottom : EVerticalTextAligment::EVRTA_TextCenter;
 			
+			// If the axis isn't Z we reverse the numbers. We don't need it for Z since the order is the same regardless of direction.
+			if (Axis != ESelectionAxis::Z)
+			{
+				Algo::Reverse(Numbers);
+			}
 
-			FRotator RelativeRotation2 = Axis == ESelectionAxis::X ? FRotator(0.f, -90.f, 0.f) : Axis == ESelectionAxis::Y ? FRotator::ZeroRotator : FRotator(0.f, -90.f, 0.f);
-			Algo::Reverse(Numbers);
-			FText Text2 = Axis == ESelectionAxis::Z ? Text : FText::Join(FText::FromString(TEXT(", ")), Numbers);
-			EHorizTextAligment HAlignment2 = Axis == ESelectionAxis::Z ? EHorizTextAligment::EHTA_Center : EHorizTextAligment::EHTA_Left;
+			// Generate text from array of numbers unless Z-axis in which case it's the same as the first Text.
+			const FText Text2 = Axis == ESelectionAxis::Z ? Text1 : FText::Join(Delimiter, Numbers);
 
-			CreateAndAttachTextToBlock(Block, RelativeLocation, RelativeRotation, Text, Color, HAlignment, VAlignment);
-			CreateAndAttachTextToBlock(Block, RelativeLocation, RelativeRotation2, Text2, Color, HAlignment2, VAlignment);
+			// Select text alignment based on axis.
+			const EHorizTextAligment HAlignment2 = Axis == ESelectionAxis::Z ? EHorizTextAligment::EHTA_Center : EHorizTextAligment::EHTA_Left;
+
+			// Get the index for the block that we're going to place the text by.
+			const FIntVector XYZ = Axis == ESelectionAxis::X ? FIntVector(0, Axis1, Axis2) : Axis == ESelectionAxis::Y ? FIntVector(Axis1, 0, Axis2) : FIntVector(Axis1, Axis2, GridSize.Z - 1);
+			const FPicrossBlock& Block = MasterGrid[FArray3D::TranslateTo1D(GridSize, XYZ)];
+
+			// Relative Location and Rotation that we're going to add onto the Block Transform to get the correct final transform.
+			const FVector RelativeLocation1 = Axis == ESelectionAxis::X ? FVector(-75.f, 0.f, 50.f) : Axis == ESelectionAxis::Y ? FVector(0.f, -75.f, 50.f) : FVector(0.f, 0.f, 115.f);
+			const FRotator RelativeRotation1 = Axis == ESelectionAxis::X ? FRotator(0.f, 90.f, 0.f) : Axis == ESelectionAxis::Y ? FRotator(0.f, 180.f, 0.f) : FRotator(0.f, 90.f, 0.f);
+			const FRotator RelativeRotation2 = RelativeRotation1 + FRotator(0.f, 180.f, 0.f);
+
+			// World location
+			const FVector WorldLocation = Block.Transform.GetTranslation() + Block.Transform.GetRotation().RotateVector(RelativeLocation1);
+
+			CreateTextRenderActor(WorldLocation, RelativeRotation1, Text1, Color, HAlignment1, VAlignment);
+			CreateTextRenderActor(WorldLocation, RelativeRotation2, Text2, Color, HAlignment2, VAlignment);
 		}
-	}*/
+	}
 }
 
-void APicrossGrid::CreateTextRender(FVector WorldLocation, FRotator WorldRotation, FText Text, FColor Color, EHorizTextAligment HAlignment, EVerticalTextAligment VAlignment) const
+void APicrossGrid::CreateTextRenderActor(FVector WorldLocation, FRotator RelativeRotation, FText Text, FColor Color, EHorizTextAligment HAlignment, EVerticalTextAligment VAlignment)
 {
-	/*UTextRenderComponent* TextComponent = NewObject<UTextRenderComponent>();
+	ATextRenderActor* TextActor = GetWorld()->SpawnActorAbsolute<ATextRenderActor>(WorldLocation, RelativeRotation);
+	static const FAttachmentTransformRules AttachmentRules(EAttachmentRule::KeepWorld, EAttachmentRule::KeepRelative, EAttachmentRule::KeepRelative, false);
+	TextActor->AttachToActor(this, AttachmentRules);
+	UTextRenderComponent* TextComponent = TextActor->GetTextRender();
 	if (TextComponent)
 	{
-		TextComponent->RegisterComponent();
-		TextComponent->AttachToComponent(Block->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
-		TextComponent->SetRelativeLocation(RelativeLocation);
-		TextComponent->SetRelativeRotation(RelativeRotation);
 		TextComponent->SetText(Text);
 		TextComponent->SetTextRenderColor(Color);
 		TextComponent->SetHorizontalAlignment(HAlignment);
@@ -321,7 +365,8 @@ void APicrossGrid::CreateTextRender(FVector WorldLocation, FRotator WorldRotatio
 		{
 			TextComponent->SetMaterial(0, NumbersTextMaterial);
 		}
-	}*/
+	}
+	TextRenderActors.Add(TextActor);
 }
 
 void APicrossGrid::Cycle2DRotation(const int32 MasterIndexPivot)

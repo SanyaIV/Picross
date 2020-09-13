@@ -10,6 +10,7 @@
 #include "PicrossGrid.generated.h"
 
 // Forward declarations
+class ATextRenderActor;
 class UMaterialInstance;
 class UUserWidget;
 class UPicrossPuzzleData;
@@ -46,8 +47,7 @@ public:
 	void DestroyGrid();
 	bool IsLocked() const;
 
-	void FillBlock(const int32 MasterIndex, const int32 InstanceIndex);
-	void CrossBlock(const int32 MasterIndex, const int32 InstanceIndex);
+	void UpdateBlocks(const int32 StartMasterIndex, const int32 EndMasterIndex, const EBlockState Action);
 	
 	void Cycle2DRotation(const int32 MasterIndexPivot);
 	void Move2DSelectionUp();
@@ -65,9 +65,9 @@ protected:
 private:
 	void CreatePuzzleBrowser();
 
-	void GenerateNumbers() const;
-	void GenerateNumbersForAxis(ESelectionAxis Axis) const;
-	void CreateTextRender(FVector WorldLocation, FRotator WorldRotation, FText Text, FColor Color, EHorizTextAligment HAlignment, EVerticalTextAligment VAlignment) const;
+	void GenerateNumbers();
+	void GenerateNumbersForAxis(ESelectionAxis Axis);
+	void CreateTextRenderActor(FVector WorldLocation, FRotator RelativeRotation, FText Text, FColor Color, EHorizTextAligment HAlignment, EVerticalTextAligment VAlignment);
 
 	void SetRotationXAxis() const;
 	void SetRotationYAxis() const;
@@ -102,6 +102,8 @@ private:
 	// Materials for each EBlockState
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Picross Block", meta = (AllowPrivateAccess = "true"))
 	TMap<EBlockState, UMaterialInstance*> BlockMaterials;
+	UPROPERTY()
+	TArray<ATextRenderActor*> TextRenderActors;
 
 	// The distance to use between the blocks when spawning them.
 	UPROPERTY(EditAnywhere, Category = "Picross", meta = (AllowPrivateAccess = "true"))
