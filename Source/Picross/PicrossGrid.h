@@ -48,7 +48,8 @@ public:
 	bool IsLocked() const;
 
 	void UpdateBlocks(const int32 StartMasterIndex, const int32 EndMasterIndex, const EBlockState Action);
-	
+	void HighlightBlocks(const int32 MasterIndexPivot);
+
 	void Cycle2DRotation(const int32 MasterIndexPivot);
 	void Move2DSelectionUp();
 	void Move2DSelectionDown();
@@ -75,6 +76,7 @@ private:
 
 	void UpdateBlockState(FPicrossBlock& Block, const EBlockState NewState, const int32 PreviousInstanceIndex);
 	void CreateBlockInstance(const FPicrossBlock& Block) const;
+	void HighlightBlocksInAxis(const int32 MasterIndexPivot, const ESelectionAxis AxisToHighlight);
 
 	UFUNCTION(BlueprintCallable, CallInEditor, Category = "Picross")
 	void EnableOnlyFilledBlocks() const;
@@ -102,6 +104,12 @@ private:
 	// Materials for each EBlockState
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Picross Block", meta = (AllowPrivateAccess = "true"))
 	TMap<EBlockState, UMaterialInstance*> BlockMaterials;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Picross Block", meta = (AllowPrivateAccess = "true"))
+	UStaticMesh* HighlightMesh = nullptr;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Picross Block", meta = (AllowPrivateAccess = "true"))
+	UMaterialInstance* HighlightMaterial = nullptr;
+	UPROPERTY()
+	UInstancedStaticMeshComponent* HighlightedBlocks = nullptr;
 	UPROPERTY()
 	TArray<ATextRenderActor*> TextRenderActors;
 

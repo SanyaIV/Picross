@@ -29,6 +29,7 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaSeconds) override;
 
 protected:
 	int32 GetBlockInView() const;
@@ -68,10 +69,11 @@ private:
 	UPROPERTY()
 	class APicrossGrid* PicrossGrid = nullptr;
 	int32 StartBlockIndex = INDEX_NONE;
+	int32 BlockInView = INDEX_NONE;
 
 	UPROPERTY()
 	EInputMode InputMode = EInputMode::Default;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Pawn", meta = (AllowPrivateAccess = "true"))
-	float ReachDistance = 500.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pawn", meta = (AllowPrivateAccess = "true"))
+	float ReachDistance = 10000.f;
 };

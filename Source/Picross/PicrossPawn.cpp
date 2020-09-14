@@ -13,7 +13,7 @@
 APicrossPawn::APicrossPawn()
 {
  	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 
 	Collision = CreateDefaultSubobject<USphereComponent>(TEXT("Collision"));
 	Collision->SetSphereRadius(50, false);
@@ -31,6 +31,19 @@ void APicrossPawn::BeginPlay()
 
 	PicrossGrid = Cast<APicrossGrid>(UGameplayStatics::GetActorOfClass(GetWorld(), APicrossGrid::StaticClass()));
 	ensureMsgf(PicrossGrid, TEXT("PicrossPawn couldn't find any PicrossGrid."));
+}
+
+void APicrossPawn::Tick(float DeltaSeconds)
+{
+	const int32 CurrentBlockInView = (InputMode == EInputMode::Default ? GetBlockInView() : GetBlockUnderMouse());
+	if (CurrentBlockInView != BlockInView)
+	{
+		if (PicrossGrid)
+		{
+			PicrossGrid->HighlightBlocks(CurrentBlockInView);
+			BlockInView = CurrentBlockInView;
+		}
+	}
 }
 
 // Called to bind functionality to input
@@ -130,35 +143,14 @@ void APicrossPawn::DisableAlternativeInputMode()
 
 void APicrossPawn::SaveStartBlock()
 {
-	switch (InputMode)
-	{
-	case EInputMode::Default:
-		StartBlockIndex = GetBlockInView();
-		break;
-	case EInputMode::Alternative:
-		StartBlockIndex = GetBlockUnderMouse();
-		break;
-	}
+	StartBlockIndex = BlockInView;
 }
-
 
 void APicrossPawn::FillBlocks()
 {
 	if (PicrossGrid)
 	{
-		int32 EndBlockIndex = INDEX_NONE;
-
-		switch (InputMode)
-		{
-			case EInputMode::Default:
-				EndBlockIndex = GetBlockInView();
-				break;
-			case EInputMode::Alternative:
-				EndBlockIndex = GetBlockUnderMouse();
-				break;
-		}
-
-		PicrossGrid->UpdateBlocks(StartBlockIndex, EndBlockIndex, EBlockState::Filled);
+		PicrossGrid->UpdateBlocks(StartBlockIndex, BlockInView, EBlockState::Filled);
 	}
 }
 
@@ -166,19 +158,7 @@ void APicrossPawn::CrossBlocks()
 {
 	if (PicrossGrid)
 	{
-		int32 EndBlockIndex = INDEX_NONE;
-
-		switch (InputMode)
-		{
-			case EInputMode::Default:
-				EndBlockIndex = GetBlockInView();
-				break;
-			case EInputMode::Alternative:
-				EndBlockIndex = GetBlockUnderMouse();
-				break;
-		}
-
-		PicrossGrid->UpdateBlocks(StartBlockIndex, EndBlockIndex, EBlockState::Crossed);
+		PicrossGrid->UpdateBlocks(StartBlockIndex, BlockInView, EBlockState::Crossed);
 	}
 }
 
@@ -186,7 +166,8 @@ void APicrossPawn::CycleSelectionRotation()
 {
 	if (!PicrossGrid) return;
 
-	PicrossGrid->Cycle2DRotation(GetBlockInView());
+	PicrossGrid->Cycle2DRotation(BlockInView);
+	PicrossGrid->HighlightBlocks(BlockInView);
 }
 
 void APicrossPawn::MoveSelectionUp()

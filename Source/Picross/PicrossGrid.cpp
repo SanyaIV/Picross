@@ -37,6 +37,12 @@ APicrossGrid::APicrossGrid()
 			Pair.Value->SetupAttachment(GetRootComponent());
 		}
 	}
+
+	HighlightedBlocks = CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("Highlight Blocks"));
+	if (HighlightedBlocks)
+	{
+		HighlightedBlocks->SetupAttachment(GetRootComponent());
+	}
 }
 
 // Called when the game starts or when spawned
@@ -57,6 +63,13 @@ void APicrossGrid::BeginPlay()
 				Pair.Value->SetMaterial(0, BlockMaterials[Pair.Key]);
 			}
 		}
+	}
+
+	if (HighlightedBlocks && HighlightMesh && HighlightMaterial)
+	{
+		HighlightedBlocks->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		HighlightedBlocks->SetStaticMesh(HighlightMesh);
+		HighlightedBlocks->SetMaterial(0, HighlightMaterial);
 	}
 
 	CreatePuzzleBrowser();
@@ -210,6 +223,53 @@ void APicrossGrid::UpdateBlocks(const int32 StartMasterIndex, const int32 EndMas
 				}
 			}
 		}
+	}
+}
+
+void APicrossGrid::HighlightBlocks(const int32 MasterIndexPivot)
+{
+	HighlightedBlocks->ClearInstances();
+
+	if (MasterIndexPivot == INDEX_NONE) return;
+
+	switch (SelectionAxis)
+	{
+		case ESelectionAxis::X:
+			HighlightBlocksInAxis(MasterIndexPivot, ESelectionAxis::Y);
+			HighlightBlocksInAxis(MasterIndexPivot, ESelectionAxis::Z);
+			break;
+		case ESelectionAxis::Y:
+			HighlightBlocksInAxis(MasterIndexPivot, ESelectionAxis::X);
+			HighlightBlocksInAxis(MasterIndexPivot, ESelectionAxis::Z);
+			break;
+		case ESelectionAxis::Z:
+			HighlightBlocksInAxis(MasterIndexPivot, ESelectionAxis::X);
+			HighlightBlocksInAxis(MasterIndexPivot, ESelectionAxis::Y);
+			break;
+		case ESelectionAxis::All:
+			HighlightBlocksInAxis(MasterIndexPivot, ESelectionAxis::X);
+			HighlightBlocksInAxis(MasterIndexPivot, ESelectionAxis::Y);
+			HighlightBlocksInAxis(MasterIndexPivot, ESelectionAxis::Z);
+			break;
+		default:
+			break;
+	}
+}
+
+void APicrossGrid::HighlightBlocksInAxis(const int32 MasterIndexPivot, const ESelectionAxis AxisToHighlight)
+{
+	const FIntVector XYZ = FArray3D::TranslateTo3D(GridSize, MasterIndexPivot);
+	const int32 EndIndex = (AxisToHighlight == ESelectionAxis::X ? GridSize.X : AxisToHighlight == ESelectionAxis::Y ? GridSize.Y : GridSize.Z);
+
+	for (int32 AxisIndex = 0; AxisIndex < EndIndex; ++AxisIndex)
+	{
+		const int32 MasterIndex = FArray3D::TranslateTo1D(GridSize, AxisToHighlight == ESelectionAxis::X ? AxisIndex : XYZ.X, 
+																	AxisToHighlight == ESelectionAxis::Y ? AxisIndex : XYZ.Y,
+																	AxisToHighlight == ESelectionAxis::Z ? AxisIndex : XYZ.Z);
+		FTransform HighlightBlockTransform = MasterGrid[MasterIndex].Transform;
+		HighlightBlockTransform.SetScale3D(HighlightBlockTransform.GetScale3D() * 1.05f);
+		HighlightBlockTransform.AddToTranslation((-GetActorUpVector()) * 100.f * ((HighlightBlockTransform.GetScale3D().Z - MasterGrid[MasterIndex].Transform.GetScale3D().Z) / 2));
+		HighlightedBlocks->AddInstanceWorldSpace(HighlightBlockTransform);
 	}
 }
 
