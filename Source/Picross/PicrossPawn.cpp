@@ -31,6 +31,8 @@ void APicrossPawn::BeginPlay()
 
 	PicrossGrid = Cast<APicrossGrid>(UGameplayStatics::GetActorOfClass(GetWorld(), APicrossGrid::StaticClass()));
 	ensureMsgf(PicrossGrid, TEXT("PicrossPawn couldn't find any PicrossGrid."));
+
+	InputMode = EInputMode::Default;
 }
 
 void APicrossPawn::Tick(float DeltaSeconds)

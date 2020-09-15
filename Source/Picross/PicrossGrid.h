@@ -5,6 +5,7 @@
 // Default includes
 #include "Components/TextRenderComponent.h"
 #include "CoreMinimal.h"
+#include "FArray3D.h"
 #include "PicrossBlock.h"
 #include "GameFramework/Actor.h"
 #include "PicrossGrid.generated.h"
@@ -22,6 +23,52 @@ enum class ESelectionAxis : uint8
 	Y	UMETA(DisplayName = "Y"),
 	X	UMETA(DisplayName = "X"),
 	All UMETA(DisplayName = "All")
+};
+
+/**
+ * Struct representing a 3D collection of FPicrossBlock, has a GridSize and Array.
+ */
+USTRUCT(BlueprintType)
+struct FPicrossBlockGrid
+{
+	GENERATED_BODY();
+
+public:
+	// Constructors & Assignments
+	FORCEINLINE FPicrossBlockGrid() : GridSize(INDEX_NONE) {}
+	FORCEINLINE FPicrossBlockGrid(FIntVector GridSize) : GridSize(GridSize) { Grid.SetNum(FArray3D::Size(GridSize)); }
+	FORCEINLINE FPicrossBlockGrid(const FPicrossBlockGrid&) = default;
+	FORCEINLINE FPicrossBlockGrid(FPicrossBlockGrid&&) = default;
+	FORCEINLINE FPicrossBlockGrid& operator=(const FPicrossBlockGrid&) = default;
+	FORCEINLINE FPicrossBlockGrid& operator=(FPicrossBlockGrid&&) = default;
+
+	// Getters
+	FORCEINLINE FIntVector GetGridSize() const { return GridSize; }
+	FORCEINLINE int32 X() const { return GridSize.X; }
+	FORCEINLINE int32 Y() const { return GridSize.Y; }
+	FORCEINLINE int32 Z() const { return GridSize.Z; }
+	FORCEINLINE TArray<FPicrossBlock>& GetGrid() { return Grid; }
+	FORCEINLINE const TArray<FPicrossBlock>& GetGrid() const { return Grid; }
+	FORCEINLINE int32 GetIndex(FIntVector ThreeDimensionalIndex) const { return FArray3D::TranslateTo1D(GridSize, ThreeDimensionalIndex); }
+	FORCEINLINE FIntVector GetIndex(int32 OneDimensionalIndex) const { return FArray3D::TranslateTo3D(GridSize, OneDimensionalIndex); }
+
+	// Ranged for redirection
+	FORCEINLINE auto begin() { return Grid.begin(); }
+	FORCEINLINE auto begin() const { return Grid.begin(); }
+	FORCEINLINE auto end() { return Grid.end(); }
+	FORCEINLINE auto end() const { return Grid.end(); }
+
+	// Functions to access the array
+	FORCEINLINE FPicrossBlock& operator[](int32 OneDimensionalIndex) { return Grid[OneDimensionalIndex]; }
+	FORCEINLINE const FPicrossBlock& operator[](int32 OneDimensionalIndex) const { return Grid[OneDimensionalIndex]; }
+	FORCEINLINE FPicrossBlock& operator[](FIntVector ThreeDimensionalIndex) { return Grid[FArray3D::TranslateTo1D(GridSize, ThreeDimensionalIndex)]; }
+	FORCEINLINE const FPicrossBlock& operator[](FIntVector ThreeDimensionalIndex) const { return Grid[FArray3D::TranslateTo1D(GridSize, ThreeDimensionalIndex)]; }
+
+private:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Picross Grid", meta = (AllowPrivateAccess = "true"))
+	FIntVector GridSize;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Picross Grid", meta = (AllowPrivateAccess = "true"))
+	TArray<FPicrossBlock> Grid;
 };
 
 /**
@@ -84,6 +131,8 @@ private:
 	void EnableAllBlocks() const;
 	UFUNCTION(BlueprintCallable, CallInEditor, Category = "Picross")
 	void DisableAllBlocks() const;
+	UFUNCTION(BlueprintCallable, CallInEditor, Category = "Picross")
+	void Solve();
 
 	void Lock();
 	void Unlock();
@@ -92,9 +141,7 @@ private:
 
 	// A 3D array implemented in a 1D array. Use FArray3D to handle translation.
 	UPROPERTY()
-	TArray<FPicrossBlock> MasterGrid;
-	// GridSize for MasterGrid above.
-	FIntVector GridSize = FIntVector::ZeroValue;
+	FPicrossBlockGrid MasterGrid;
 	// Instanced Static Mesh Components for each EBlockState
 	UPROPERTY()
 	TMap<EBlockState, UInstancedStaticMeshComponent*> BlockInstances;
