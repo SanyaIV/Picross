@@ -11,11 +11,13 @@
 #include "Components/TextBlock.h"
 #include "Engine/AssetManager.h"
 #include "Engine/Engine.h"
+#include "Engine/ObjectLibrary.h"
 #include "Engine/TextRenderActor.h"
 #include "IAssetTools.h"
-#include "UnrealEd.h"
+#include "Materials/MaterialInstance.h"
 #include "PicrossPuzzleData.h"
 #include "PicrossPuzzleFactory.h"
+
 
 // Sets default values
 APicrossGrid::APicrossGrid()
