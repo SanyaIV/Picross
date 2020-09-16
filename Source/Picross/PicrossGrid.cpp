@@ -494,7 +494,7 @@ void APicrossGrid::RotateNumbersXAxis()
 	const FRotator Rotation1{ 0.f, -180.f, 0.f };
 	const FRotator Rotation2{ 0.f, 0.f, 0.f };
 
-	auto SetRotation = [Rotation1, Rotation2](TPair<FIntVector, FTextPair>& Pair) -> void
+	static const auto SetRotation = [Rotation1, Rotation2](TPair<FIntVector, FTextPair>& Pair) -> void
 	{
 		if (Pair.Value.Text1) Pair.Value.Text1->SetActorRelativeRotation(Rotation1);
 		if (Pair.Value.Text2) Pair.Value.Text2->SetActorRelativeRotation(Rotation2);
@@ -509,7 +509,7 @@ void APicrossGrid::RotateNumbersYAxis()
 	const FRotator Rotation1{ 0.f, 90.f, 0.f };
 	const FRotator Rotation2{ 0.f, -90.f, 0.f };
 
-	auto SetRotation = [Rotation1, Rotation2](TPair<FIntVector, FTextPair>& Pair) -> void
+	static const auto SetRotation = [Rotation1, Rotation2](TPair<FIntVector, FTextPair>& Pair) -> void
 	{
 		if (Pair.Value.Text1) Pair.Value.Text1->SetActorRelativeRotation(Rotation1);
 		if (Pair.Value.Text2) Pair.Value.Text2->SetActorRelativeRotation(Rotation2);
@@ -524,7 +524,7 @@ void APicrossGrid::RotateNumbersZAxis()
 	const FRotator RotationX1{ 90.f, 90.f, 0.f };
 	const FRotator RotationX2{ -90.f, -90.f, 0.f };
 
-	auto SetRotationX = [RotationX1, RotationX2](TPair<FIntVector, FTextPair>& Pair) -> void
+	static const auto SetRotationX = [RotationX1, RotationX2](TPair<FIntVector, FTextPair>& Pair) -> void
 	{
 		if (Pair.Value.Text1) Pair.Value.Text1->SetActorRelativeRotation(RotationX1);
 		if (Pair.Value.Text2) Pair.Value.Text2->SetActorRelativeRotation(RotationX2);
@@ -533,7 +533,7 @@ void APicrossGrid::RotateNumbersZAxis()
 	const FRotator RotationY1{ 90.f, -180.f, 0.f };
 	const FRotator RotationY2{ -90.f, 0.f, 0.f };
 
-	auto SetRotationY = [RotationY1, RotationY2](TPair<FIntVector, FTextPair>& Pair) -> void
+	static const auto SetRotationY = [RotationY1, RotationY2](TPair<FIntVector, FTextPair>& Pair) -> void
 	{
 		if (Pair.Value.Text1) Pair.Value.Text1->SetActorRelativeRotation(RotationY1);
 		if (Pair.Value.Text2) Pair.Value.Text2->SetActorRelativeRotation(RotationY2);
@@ -548,7 +548,7 @@ void APicrossGrid::RotateNumbersAllAxis()
 	const FRotator RotationXZ1{ 0.f, 90.f, 0.f };
 	const FRotator RotationXZ2{ 0.f, -90.f, 0.f };
 
-	auto SetRotationXZ = [RotationXZ1, RotationXZ2](TPair<FIntVector, FTextPair>& Pair) -> void
+	static const auto SetRotationXZ = [RotationXZ1, RotationXZ2](TPair<FIntVector, FTextPair>& Pair) -> void
 	{
 		if (Pair.Value.Text1) Pair.Value.Text1->SetActorRelativeRotation(RotationXZ1);
 		if (Pair.Value.Text2) Pair.Value.Text2->SetActorRelativeRotation(RotationXZ2);
@@ -557,7 +557,7 @@ void APicrossGrid::RotateNumbersAllAxis()
 	const FRotator RotationY1{ 0.f, -180.f, 0.f };
 	const FRotator RotationY2{ 0.f, 0.f, 0.f };
 
-	auto SetRotationY = [RotationY1, RotationY2](TPair<FIntVector, FTextPair>& Pair) -> void
+	static const auto SetRotationY = [RotationY1, RotationY2](TPair<FIntVector, FTextPair>& Pair) -> void
 	{
 		if (Pair.Value.Text1) Pair.Value.Text1->SetActorRelativeRotation(RotationY1);
 		if (Pair.Value.Text2) Pair.Value.Text2->SetActorRelativeRotation(RotationY2);
