@@ -25,6 +25,17 @@ enum class ESelectionAxis : uint8
 	All UMETA(DisplayName = "All")
 };
 
+USTRUCT(BlueprintType)
+struct FTextPair
+{
+	GENERATED_BODY();
+
+	UPROPERTY()
+	ATextRenderActor* Text1 = nullptr;
+	UPROPERTY()
+	ATextRenderActor* Text2 = nullptr;
+};
+
 /**
  * Struct representing a 3D collection of FPicrossBlock, has a GridSize and Array.
  */
@@ -124,7 +135,15 @@ private:
 
 	void GenerateNumbers();
 	void GenerateNumbersForAxis(ESelectionAxis Axis);
-	void CreateTextRenderActor(FVector WorldLocation, FRotator RelativeRotation, FText Text, FColor Color, EHorizTextAligment HAlignment, EVerticalTextAligment VAlignment);
+	void CreateTextFromNumbersForAxis(ESelectionAxis Axis, int32 Axis1, int32 Axis2, const FFormatOrderedArguments& Numbers);
+	ATextRenderActor* CreateTextRenderActor(FVector WorldLocation, FRotator RelativeRotation, FText Text, FColor Color, EHorizTextAligment HAlignment, EVerticalTextAligment VAlignment);
+	void ForEachTextActor(const TFunctionRef<void(TPair<FIntVector, FTextPair>&)> Func);
+	void CleanupNumbers();
+	void UpdateNumbersVisibility();
+	void RotateNumbersXAxis();
+	void RotateNumbersYAxis();
+	void RotateNumbersZAxis();
+	void RotateNumbersAllAxis();
 
 	void SetRotationXAxis() const;
 	void SetRotationYAxis() const;
@@ -163,7 +182,11 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Picross", meta = (AllowPrivateAccess = "true"))
 	UMaterialInstance* NumbersTextMaterial = nullptr;
 	UPROPERTY()
-	TArray<ATextRenderActor*> TextRenderActors;
+	TMap<FIntVector, FTextPair> NumbersXAxis;
+	UPROPERTY()
+	TMap<FIntVector, FTextPair> NumbersYAxis;
+	UPROPERTY()
+	TMap<FIntVector, FTextPair> NumbersZAxis;
 
 	// The distance to use between the blocks when spawning them.
 	UPROPERTY(EditAnywhere, Category = "Picross", meta = (AllowPrivateAccess = "true"))
