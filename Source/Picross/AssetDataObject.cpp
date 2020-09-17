@@ -28,24 +28,10 @@ FIntVector UAssetDataObject::GetGridSize() const
 {
 	if (AssetData.TagsAndValues.Contains(TEXT("GridSize")))
 	{
-		TArray<FString> StringArray;
-		AssetData.TagsAndValues.FindChecked(TEXT("GridSize")).ParseIntoArray(StringArray, TEXT(","));
-
-		if (StringArray.Num() != 3) return FIntVector::NoneValue;
-
-		StringArray[0].RemoveFromStart(TEXT("(X="));
-		StringArray[0].RemoveFromEnd(TEXT(","));
-		StringArray[1].RemoveFromStart(TEXT("Y="));
-		StringArray[1].RemoveFromEnd(TEXT(","));
-		StringArray[2].RemoveFromStart(TEXT("Z="));
-		StringArray[2].RemoveFromEnd(TEXT(")"));
-
-		return FIntVector
-		{
-			StringArray[0].IsNumeric() ? FCString::Atoi(*StringArray[0]) : INDEX_NONE,
-			StringArray[1].IsNumeric() ? FCString::Atoi(*StringArray[1]) : INDEX_NONE,
-			StringArray[2].IsNumeric() ? FCString::Atoi(*StringArray[2]) : INDEX_NONE
-		};
+		FString GridSizeString = AssetData.TagsAndValues.FindChecked(TEXT("GridSize"));
+		FIntVector GridSize;
+		swscanf_s(*GridSizeString, TEXT("(X=%d,Y=%d,Z=%d)"), &GridSize.X, &GridSize.Y, &GridSize.Z);
+		return GridSize;
 	}
 	
 	return FIntVector::NoneValue;
