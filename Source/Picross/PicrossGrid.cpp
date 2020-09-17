@@ -130,6 +130,8 @@ void APicrossGrid::CreateGrid()
 
 	Unlock();
 	DestroyGrid();
+	UndoStack.Empty();
+	RedoStack.Empty();
 	SelectionAxis = ESelectionAxis::All;
 	LastPivotXYZ = FIntVector::ZeroValue;
 	SolutionFilledBlocksCount = Algo::Count(Puzzle.GetPuzzleData()->GetSolution(), true);
@@ -193,6 +195,13 @@ void APicrossGrid::UpdateBlocks(const int32 StartMasterIndex, const int32 EndMas
 
 	const EBlockState PreviousState = Puzzle[StartMasterIndex].State;
 	const EBlockState NewState = Action == EBlockState::Filled ? (PreviousState != EBlockState::Filled ? EBlockState::Filled : EBlockState::Clear) : (PreviousState != EBlockState::Crossed ? EBlockState::Crossed : EBlockState::Clear);
+	UpdateBlocks(StartMasterIndex, EndMasterIndex, PreviousState, NewState, true);
+}
+
+void APicrossGrid::UpdateBlocks(const int32 StartMasterIndex, const int32 EndMasterIndex, const EBlockState PreviousState, const EBlockState NewState, const bool AddToStack)
+{
+	if (StartMasterIndex == INDEX_NONE || EndMasterIndex == INDEX_NONE) return;
+
 	const FIntVector StartIndex = Puzzle.GetIndex(StartMasterIndex);
 	const FIntVector EndIndex = Puzzle.GetIndex(EndMasterIndex);
 
@@ -209,6 +218,32 @@ void APicrossGrid::UpdateBlocks(const int32 StartMasterIndex, const int32 EndMas
 				}
 			}
 		}
+	}
+
+	if (AddToStack)
+	{
+		UndoStack.Push(FPicrossAction{ StartMasterIndex, EndMasterIndex, PreviousState, NewState });
+		RedoStack.Empty();
+	}
+}
+
+void APicrossGrid::Undo()
+{
+	if (!IsLocked() && UndoStack.Num() > 0)
+	{
+		FPicrossAction Action = UndoStack.Pop(false);
+		UpdateBlocks(Action.StartBlockIndex, Action.EndBlockIndex, Action.NewState, Action.PreviousState, false);
+		RedoStack.Push(Action);
+	}
+}
+
+void APicrossGrid::Redo()
+{
+	if (!IsLocked() && RedoStack.Num() > 0)
+	{
+		FPicrossAction Action = RedoStack.Pop(false);
+		UpdateBlocks(Action.StartBlockIndex, Action.EndBlockIndex, Action.PreviousState, Action.NewState, false);
+		UndoStack.Push(Action);
 	}
 }
 

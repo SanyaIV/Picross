@@ -46,6 +46,8 @@ protected:
 	void CycleSelectionRotation();
 	void MoveSelectionUp();
 	void MoveSelectionDown();
+	void Undo();
+	void Redo();
 
 	// Rotation
 	virtual void AddControllerPitchInput(float Value) override;

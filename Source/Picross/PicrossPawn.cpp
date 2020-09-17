@@ -68,6 +68,8 @@ void APicrossPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	PlayerInputComponent->BindAction("Move Selection Up", EInputEvent::IE_Pressed, this, &APicrossPawn::MoveSelectionUp);
 	PlayerInputComponent->BindAction("Move Selection Down", EInputEvent::IE_Pressed, this, &APicrossPawn::MoveSelectionDown);
 	PlayerInputComponent->BindAction("Cycle Selection Rotation", EInputEvent::IE_Pressed, this, &APicrossPawn::CycleSelectionRotation);
+	PlayerInputComponent->BindAction("Undo", EInputEvent::IE_Pressed, this, &APicrossPawn::Undo);
+	PlayerInputComponent->BindAction("Redo", EInputEvent::IE_Pressed, this, &APicrossPawn::Redo);
 
 	// Rotation
 	PlayerInputComponent->BindAxis("Rotate Pitch", this, &APicrossPawn::AddControllerPitchInput);
@@ -184,6 +186,20 @@ void APicrossPawn::MoveSelectionDown()
 	if (!PicrossGrid) return;
 
 	PicrossGrid->Move2DSelectionDown();
+}
+
+void APicrossPawn::Undo()
+{
+	if (!PicrossGrid) return;
+
+	PicrossGrid->Undo();
+}
+
+void APicrossPawn::Redo()
+{
+	if (!PicrossGrid) return;
+
+	PicrossGrid->Redo();
 }
 
 void APicrossPawn::AddControllerPitchInput(float Value)

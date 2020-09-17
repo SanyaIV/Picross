@@ -25,6 +25,23 @@ enum class ESelectionAxis : uint8
 	All UMETA(DisplayName = "All")
 };
 
+/**
+ * Struct representing the action taken on a block, used for undo/redo stack.
+ */
+USTRUCT()
+struct FPicrossAction
+{
+	GENERATED_BODY();
+
+	int32 StartBlockIndex;
+	int32 EndBlockIndex;
+	EBlockState PreviousState;
+	EBlockState NewState;
+};
+
+/**
+ * Struct representing a pair of opposing text actors, letting the player read it from both sides.
+ */
 USTRUCT(BlueprintType)
 struct FTextPair
 {
@@ -104,7 +121,11 @@ public:
 	bool IsLocked() const;
 
 	void UpdateBlocks(const int32 StartMasterIndex, const int32 EndMasterIndex, const EBlockState Action);
+	void UpdateBlocks(const int32 StartMasterIndex, const int32 EndMasterIndex, const EBlockState PreviousState, const EBlockState NewState, const bool AddToStack = true);
 	void HighlightBlocks(const int32 MasterIndexPivot);
+
+	void Undo();
+	void Redo();
 
 	void Cycle2DRotation(const int32 MasterIndexPivot);
 	void Move2DSelectionUp();
@@ -187,6 +208,11 @@ private:
 	TMap<FIntVector, FTextPair> NumbersYAxis;
 	UPROPERTY()
 	TMap<FIntVector, FTextPair> NumbersZAxis;
+
+	UPROPERTY()
+	TArray<FPicrossAction> UndoStack;
+	UPROPERTY()
+	TArray<FPicrossAction> RedoStack;
 
 	// The distance to use between the blocks when spawning them.
 	UPROPERTY(EditAnywhere, Category = "Picross", meta = (AllowPrivateAccess = "true"))
