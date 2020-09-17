@@ -4,6 +4,7 @@
 #include "Algo/Count.h"
 #include "Algo/ForEach.h"
 #include "Algo/Reverse.h"
+#include "Algo/Sort.h"
 #include "AssetDataObject.h"
 #include "Blueprint/UserWidget.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
@@ -83,11 +84,19 @@ void APicrossGrid::CreatePuzzleBrowser()
 			UListView* List = Cast<UListView>(PuzzleBrowserWidget->GetWidgetFromName(TEXT("Puzzle_Browser")));
 			if (List)
 			{
+				TArray<UAssetDataObject*> AssetDataObjects;
 				for (FAssetData AssetData : GetAllPuzzles())
 				{
 					UAssetDataObject* AssetDataObject = NewObject<UAssetDataObject>(List, UAssetDataObject::StaticClass());
 					AssetDataObject->SetAssetData(AssetData);
 					AssetDataObject->SetPicrossGrid(this);
+					AssetDataObjects.Push(AssetDataObject);
+				}
+
+				Algo::Sort(AssetDataObjects, [](UAssetDataObject* A, UAssetDataObject* B) { return (A && B) ? (FArray3D::Size(A->GetGridSize()) < FArray3D::Size(B->GetGridSize())) : false; });
+
+				for (UAssetDataObject* AssetDataObject : AssetDataObjects)
+				{
 					List->AddItem(AssetDataObject);
 				}
 			}

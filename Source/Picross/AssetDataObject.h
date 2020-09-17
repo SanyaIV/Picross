@@ -23,6 +23,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Picross")
 	class APicrossGrid* GetPicrossGrid() const;
 
+	UFUNCTION(BlueprintCallable, Category = "Picross")
+	FIntVector GetGridSize() const;
+	UFUNCTION(BlueprintCallable, Category = "Picross")
+	FString GetGridSizeString() const;
+
 private:
 	FAssetData AssetData;
 	class APicrossGrid* PicrossGrid = nullptr;
