@@ -13,6 +13,7 @@
 
 // Forward declarations
 class ATextRenderActor;
+class UHierarchicalInstancedStaticMeshComponent;
 class UMaterialInstance;
 class UUserWidget;
 
@@ -191,14 +192,14 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Picross Block", meta = (AllowPrivateAccess = "true"))
 	TMap<EBlockState, UMaterialInstance*> BlockMaterials;
 	UPROPERTY()
-	TMap<EBlockState, UInstancedStaticMeshComponent*> BlockInstances;
+	TMap<EBlockState, UHierarchicalInstancedStaticMeshComponent*> BlockInstances;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Picross Block", meta = (AllowPrivateAccess = "true"))
 	UStaticMesh* HighlightMesh = nullptr;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Picross Block", meta = (AllowPrivateAccess = "true"))
 	UMaterialInstance* HighlightMaterial = nullptr;
 	UPROPERTY()
-	UInstancedStaticMeshComponent* HighlightedBlocks = nullptr;
+	UHierarchicalInstancedStaticMeshComponent* HighlightedBlocks = nullptr;
 
 	UPROPERTY(EditAnywhere, Category = "Picross", meta = (AllowPrivateAccess = "true"))
 	UMaterialInstance* NumbersTextMaterial = nullptr;

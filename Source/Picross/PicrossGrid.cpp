@@ -6,6 +6,7 @@
 #include "Algo/Reverse.h"
 #include "AssetDataObject.h"
 #include "Blueprint/UserWidget.h"
+#include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Components/ListView.h"
 #include "Components/TextBlock.h"
 #include "Engine/AssetManager.h"
@@ -21,9 +22,9 @@ APicrossGrid::APicrossGrid()
 	PrimaryActorTick.bCanEverTick = false;
 
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
-	BlockInstances.Add(EBlockState::Clear, CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("Clear Blocks")));
-	BlockInstances.Add(EBlockState::Crossed, CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("Crossed Blocks")));
-	BlockInstances.Add(EBlockState::Filled, CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("Filled Blocks")));
+	BlockInstances.Add(EBlockState::Clear, CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("Clear Blocks")));
+	BlockInstances.Add(EBlockState::Crossed, CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("Crossed Blocks")));
+	BlockInstances.Add(EBlockState::Filled, CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("Filled Blocks")));
 
 	for (auto& Pair : BlockInstances)
 	{
@@ -34,7 +35,7 @@ APicrossGrid::APicrossGrid()
 		}
 	}
 
-	HighlightedBlocks = CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("Highlight Blocks"));
+	HighlightedBlocks = CreateDefaultSubobject<UHierarchicalInstancedStaticMeshComponent>(TEXT("Highlight Blocks"));
 	if (HighlightedBlocks)
 	{
 		HighlightedBlocks->SetupAttachment(GetRootComponent());
