@@ -30,7 +30,11 @@ FIntVector UAssetDataObject::GetGridSize() const
 	{
 		FString GridSizeString = AssetData.TagsAndValues.FindChecked(TEXT("GridSize"));
 		FIntVector GridSize;
+#if !PLATFORM_WINDOWS
+		swscanf(TCHAR_TO_WCHAR(*GridSizeString), L"(X=%d,Y=%d,Z=%d)", &GridSize.X, &GridSize.Y, &GridSize.Z);
+#else
 		swscanf_s(*GridSizeString, TEXT("(X=%d,Y=%d,Z=%d)"), &GridSize.X, &GridSize.Y, &GridSize.Z);
+#endif
 		return GridSize;
 	}
 	
