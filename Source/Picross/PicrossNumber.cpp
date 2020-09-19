@@ -23,7 +23,7 @@ void APicrossNumber::Setup(const EAxis::Type AxisToSet, const FFormatOrderedArgu
 	Numbers = NumbersToSet;
 
 	GenerateTexts();
-	const FColor Color = Axis == EAxis::Type::Z ? FColor::Blue : Axis == EAxis::Type::Y ? FColor::Green : FColor::Red;
+	const FColor Color = Axis == EAxis::Z ? FColor::Blue : Axis == EAxis::Y ? FColor::Green : FColor::Red;
 	MainText->SetTextRenderColor(Color);
 	ReversedText->SetTextRenderColor(Color);
 	UpdateRotation(EAxis::Type::None);
@@ -35,7 +35,7 @@ void APicrossNumber::GenerateTexts()
 	{
 		if (MainText && ReversedText)
 		{
-			const FText Delimiter = FText::FromString(Axis == EAxis::Type::Z ? TEXT("\n") : TEXT(", "));
+			const FText Delimiter = FText::FromString(Axis == EAxis::Z ? TEXT("\n") : TEXT(", "));
 			MainText->Text = FText::Join(Delimiter, Numbers);
 
 			FFormatOrderedArguments ReversedNumbers = Numbers;
