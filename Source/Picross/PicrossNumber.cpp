@@ -3,6 +3,7 @@
 
 #include "PicrossNumber.h"
 #include "Components/TextRenderComponent.h"
+#include "Materials/MaterialInstance.h"
 
 // Sets default values
 APicrossNumber::APicrossNumber()
@@ -12,9 +13,24 @@ APicrossNumber::APicrossNumber()
 
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 	MainText = CreateDefaultSubobject<UTextRenderComponent>(TEXT("Main Text"));
-	MainText->SetupAttachment(GetRootComponent());
+	if (MainText)
+	{
+		MainText->SetupAttachment(GetRootComponent());
+		if (NumbersTextMaterial)
+		{
+			MainText->SetMaterial(0, NumbersTextMaterial);
+		}
+	}
+	
 	ReversedText = CreateDefaultSubobject<UTextRenderComponent>(TEXT("Reversed Text"));
-	ReversedText->SetupAttachment(GetRootComponent());
+	if (ReversedText)
+	{
+		ReversedText->SetupAttachment(GetRootComponent());
+		if (NumbersTextMaterial)
+		{
+			ReversedText->SetMaterial(0, NumbersTextMaterial);
+		}
+	}
 }
 
 void APicrossNumber::Setup(const EAxis::Type AxisToSet, const FFormatOrderedArguments& NumbersToSet)
@@ -22,27 +38,11 @@ void APicrossNumber::Setup(const EAxis::Type AxisToSet, const FFormatOrderedArgu
 	Axis = AxisToSet;
 	Numbers = NumbersToSet;
 
-	GenerateTexts();
 	const FColor Color = Axis == EAxis::Z ? FColor::Blue : Axis == EAxis::Y ? FColor::Green : FColor::Red;
 	MainText->SetTextRenderColor(Color);
 	ReversedText->SetTextRenderColor(Color);
 	UpdateRotation(EAxis::Type::None);
-}
-
-void APicrossNumber::GenerateTexts()
-{
-	if (Numbers.Num() > 0)
-	{
-		if (MainText && ReversedText)
-		{
-			const FText Delimiter = FText::FromString(Axis == EAxis::Z ? TEXT("\n") : TEXT(", "));
-			MainText->Text = FText::Join(Delimiter, Numbers);
-
-			FFormatOrderedArguments ReversedNumbers = Numbers;
-			Algo::Reverse(ReversedNumbers);
-			ReversedText->Text = FText::Join(Delimiter, Numbers);
-		}
-	}
+	GenerateTexts();
 }
 
 void APicrossNumber::UpdateRotation(const EAxis::Type GridSelectionAxis)
@@ -51,6 +51,9 @@ void APicrossNumber::UpdateRotation(const EAxis::Type GridSelectionAxis)
 	
 	if (TextPairDatas.Contains(AxisPair))
 	{
+		const EHorizTextAligment OldHorizontalAlignment = MainText->HorizontalAlignment;
+		const EVerticalTextAligment OldVerticalAlignment = MainText->VerticalAlignment;
+
 		const FTextPairData& TextPairData = TextPairDatas.FindChecked(AxisPair);
 		MainText->SetRelativeRotation(TextPairData.MainRotation);
 		MainText->SetHorizontalAlignment(TextPairData.MainHorizontalAlignment);
@@ -59,5 +62,27 @@ void APicrossNumber::UpdateRotation(const EAxis::Type GridSelectionAxis)
 		ReversedText->SetRelativeRotation(TextPairData.ReversedRotation);
 		ReversedText->SetHorizontalAlignment(TextPairData.ReversedHorizontalAlignment);
 		ReversedText->SetVerticalAlignment(TextPairData.ReversedVerticalAlignment);
+
+		if (OldHorizontalAlignment != MainText->HorizontalAlignment || OldVerticalAlignment != MainText->VerticalAlignment)
+		{
+			GenerateTexts();
+		}
+	}
+}
+
+void APicrossNumber::GenerateTexts()
+{
+	if (Numbers.Num() > 0)
+	{
+		if (MainText && ReversedText)
+		{
+			const bool bVerticalText = (MainText->VerticalAlignment == EVerticalTextAligment::EVRTA_TextBottom && MainText->HorizontalAlignment == EHorizTextAligment::EHTA_Center);
+			const FText Delimiter = FText::FromString(bVerticalText ? TEXT("\n") : TEXT(", "));
+			MainText->Text = FText::Join(Delimiter, Numbers);
+
+			FFormatOrderedArguments ReversedNumbers = Numbers;
+			Algo::Reverse(ReversedNumbers);
+			ReversedText->Text = FText::Join(Delimiter, Numbers);
+		}
 	}
 }

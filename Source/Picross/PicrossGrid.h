@@ -12,19 +12,10 @@
 #include "PicrossGrid.generated.h"
 
 // Forward declarations
+class APicrossNumber;
 class ATextRenderActor;
 class UHierarchicalInstancedStaticMeshComponent;
-class UMaterialInstance;
 class UUserWidget;
-
-UENUM()
-enum class ESelectionAxis : uint8
-{
-	Z	UMETA(DisplayName = "Z"),
-	Y	UMETA(DisplayName = "Y"),
-	X	UMETA(DisplayName = "X"),
-	All UMETA(DisplayName = "All")
-};
 
 /**
  * Struct representing the action taken on a block, used for undo/redo stack.
@@ -38,20 +29,6 @@ struct FPicrossAction
 	int32 EndBlockIndex;
 	EBlockState PreviousState;
 	EBlockState NewState;
-};
-
-/**
- * Struct representing a pair of opposing text actors, letting the player read it from both sides.
- */
-USTRUCT(BlueprintType)
-struct FTextPair
-{
-	GENERATED_BODY();
-
-	UPROPERTY()
-	ATextRenderActor* Text1 = nullptr;
-	UPROPERTY()
-	ATextRenderActor* Text2 = nullptr;
 };
 
 /**
@@ -132,6 +109,8 @@ public:
 	void Move2DSelectionUp();
 	void Move2DSelectionDown();
 
+	FTransform GetIdealPawnTransform(const APawn* Pawn) const;
+
 	UFUNCTION(BlueprintCallable, Category = "Picross")
 	void LoadPuzzle(FAssetData PuzzleToLoad); 
 
@@ -156,16 +135,11 @@ private:
 	void CreatePuzzleBrowser();
 
 	void GenerateNumbers();
-	void GenerateNumbersForAxis(ESelectionAxis Axis);
-	void CreateTextFromNumbersForAxis(ESelectionAxis Axis, int32 Axis1, int32 Axis2, const FFormatOrderedArguments& Numbers);
-	ATextRenderActor* CreateTextRenderActor(FVector WorldLocation, FRotator RelativeRotation, FText Text, FColor Color, EHorizTextAligment HAlignment, EVerticalTextAligment VAlignment);
-	void ForEachTextActor(const TFunctionRef<void(TPair<FIntVector, FTextPair>&)> Func);
+	void GenerateNumbersForAxis(const EAxis::Type Axis);
+	void CreatePicrossNumber(const EAxis::Type Axis, int32 Axis1, int32 Axis2, const FFormatOrderedArguments& Numbers);
+	void ForEachPicrossNumber(const TFunctionRef<void(TPair<FIntVector, APicrossNumber*>&)> Func);
 	void CleanupNumbers();
 	void UpdateNumbersVisibility();
-	void RotateNumbersXAxis();
-	void RotateNumbersYAxis();
-	void RotateNumbersZAxis();
-	void RotateNumbersAllAxis();
 
 	void SetRotationXAxis() const;
 	void SetRotationYAxis() const;
@@ -173,7 +147,7 @@ private:
 
 	void UpdateBlockState(FPicrossBlock& Block, const EBlockState NewState, const int32 PreviousInstanceIndex);
 	void CreateBlockInstance(const FPicrossBlock& Block) const;
-	void HighlightBlocksInAxis(const int32 MasterIndexPivot, const ESelectionAxis AxisToHighlight);
+	void HighlightBlocksInAxis(const int32 MasterIndexPivot, const EAxis::Type AxisToHighlight);
 
 	UFUNCTION(BlueprintCallable, CallInEditor, Category = "Picross")
 	void EnableOnlyFilledBlocks() const;
@@ -202,13 +176,13 @@ private:
 	UHierarchicalInstancedStaticMeshComponent* HighlightedBlocks = nullptr;
 
 	UPROPERTY(EditAnywhere, Category = "Picross", meta = (AllowPrivateAccess = "true"))
-	UMaterialInstance* NumbersTextMaterial = nullptr;
+	TSubclassOf<APicrossNumber> PicrossNumberClass = nullptr;
 	UPROPERTY()
-	TMap<FIntVector, FTextPair> NumbersXAxis;
+	TMap<FIntVector, APicrossNumber*> NumbersXAxis;
 	UPROPERTY()
-	TMap<FIntVector, FTextPair> NumbersYAxis;
+	TMap<FIntVector, APicrossNumber*> NumbersYAxis;
 	UPROPERTY()
-	TMap<FIntVector, FTextPair> NumbersZAxis;
+	TMap<FIntVector, APicrossNumber*> NumbersZAxis;
 
 	UPROPERTY()
 	TArray<FPicrossAction> UndoStack;
@@ -220,7 +194,7 @@ private:
 	float DistanceBetweenBlocks = 102.f;
 
 	// Keeps track of the current axis of selection.
-	ESelectionAxis SelectionAxis = ESelectionAxis::All;
+	TEnumAsByte<EAxis::Type> SelectionAxis = EAxis::None;
 	// Caches the last index used to pivot so we can do that operation without a new pivot-index.
 	FIntVector LastPivotXYZ = FIntVector::ZeroValue;
 	// Lock that we can set when solution has been found so the player can't edit finished puzzles.

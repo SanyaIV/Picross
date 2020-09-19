@@ -79,6 +79,7 @@ void APicrossPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	PlayerInputComponent->BindAxis("Move Forward", this, &APicrossPawn::MoveForward);
 	PlayerInputComponent->BindAxis("Move Right", this, &APicrossPawn::MoveRight);
 	PlayerInputComponent->BindAxis("Move Up", this, &APicrossPawn::MoveUp);
+	PlayerInputComponent->BindAction("Ideal Camera Position", EInputEvent::IE_Pressed, this, &APicrossPawn::MoveToIdealTransform);
 }
 
 int32 APicrossPawn::GetBlockInView() const
@@ -243,6 +244,23 @@ void APicrossPawn::MoveUp(float Value)
 	if (!FMath::IsNearlyZero(Value))
 	{
 		AddMovementInput(FVector::UpVector, Value);
+	}
+}
+
+void APicrossPawn::MoveToIdealTransform()
+{
+	if (PicrossGrid)
+	{
+		const FTransform IdealTransform = PicrossGrid->GetIdealPawnTransform(this);
+		if (IdealTransform.IsValid())
+		{
+			SetActorTransform(IdealTransform);
+			APicrossPlayerController* PlayerController = Cast<APicrossPlayerController>(GetController());
+			if (PlayerController)
+			{
+				PlayerController->SetControlRotation(IdealTransform.GetRotation().Rotator());
+			}
+		}
 	}
 }
 

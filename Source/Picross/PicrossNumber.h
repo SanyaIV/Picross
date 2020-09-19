@@ -7,6 +7,8 @@
 #include "Components/TextRenderComponent.h"
 #include "PicrossNumber.generated.h"
 
+class UMaterialInstance;
+
 USTRUCT(BlueprintType)
 struct PICROSS_API FAxisPair
 {
@@ -82,20 +84,25 @@ public:
 
 	void Setup(const EAxis::Type AxisToSet, const FFormatOrderedArguments& NumbersToSet);
 	void UpdateRotation(const EAxis::Type GridSelectionAxis);
+	EAxis::Type GetAxis() const { return Axis; }
 
 protected:
 	void GenerateTexts();
 
 private:
-	UPROPERTY()
+	UPROPERTY(VisibleInstanceOnly)
 	UTextRenderComponent* MainText = nullptr;
-	UPROPERTY()
+	UPROPERTY(VisibleInstanceOnly)
 	UTextRenderComponent* ReversedText = nullptr;
 
 	// Information about the pairs of data for different axis combinations.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rotations", meta = (AllowPrivateAccess = "true"))
 	TMap<FAxisPair, FTextPairData> TextPairDatas;
 
+	UPROPERTY(EditAnywhere, Category = "Numbers", meta = (AllowPrivateAccess = "true"))
+	UMaterialInstance* NumbersTextMaterial = nullptr;
+
 	FFormatOrderedArguments Numbers;
+	UPROPERTY(VisibleInstanceOnly)
 	TEnumAsByte<EAxis::Type> Axis = EAxis::Type::None;
 };

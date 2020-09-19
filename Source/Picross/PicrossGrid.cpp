@@ -1,6 +1,7 @@
 // Copyright Sanya Larsson 2020
 
 #include "PicrossGrid.h"
+#include "PicrossNumber.h"
 #include "Algo/Count.h"
 #include "Algo/ForEach.h"
 #include "Algo/Reverse.h"
@@ -14,6 +15,7 @@
 #include "Engine/ObjectLibrary.h"
 #include "Engine/TextRenderActor.h"
 #include "Materials/MaterialInstance.h"
+#include "Kismet/KismetMathLibrary.h"
 
 
 // Sets default values
@@ -142,7 +144,7 @@ void APicrossGrid::CreateGrid()
 	DestroyGrid();
 	UndoStack.Empty();
 	RedoStack.Empty();
-	SelectionAxis = ESelectionAxis::All;
+	SelectionAxis = EAxis::None;
 	LastPivotXYZ = FIntVector::ZeroValue;
 	SolutionFilledBlocksCount = Algo::Count(Puzzle.GetPuzzleData()->GetSolution(), true);
 	CurrentlyFilledBlocksCount = 0;
@@ -265,36 +267,36 @@ void APicrossGrid::HighlightBlocks(const int32 MasterIndexPivot)
 
 	switch (SelectionAxis)
 	{
-		case ESelectionAxis::X:
-			HighlightBlocksInAxis(MasterIndexPivot, ESelectionAxis::Y);
-			HighlightBlocksInAxis(MasterIndexPivot, ESelectionAxis::Z);
+		case EAxis::X:
+			HighlightBlocksInAxis(MasterIndexPivot, EAxis::Y);
+			HighlightBlocksInAxis(MasterIndexPivot, EAxis::Z);
 			break;
-		case ESelectionAxis::Y:
-			HighlightBlocksInAxis(MasterIndexPivot, ESelectionAxis::X);
-			HighlightBlocksInAxis(MasterIndexPivot, ESelectionAxis::Z);
+		case EAxis::Y:
+			HighlightBlocksInAxis(MasterIndexPivot, EAxis::X);
+			HighlightBlocksInAxis(MasterIndexPivot, EAxis::Z);
 			break;
-		case ESelectionAxis::Z:
-			HighlightBlocksInAxis(MasterIndexPivot, ESelectionAxis::X);
-			HighlightBlocksInAxis(MasterIndexPivot, ESelectionAxis::Y);
+		case EAxis::Z:
+			HighlightBlocksInAxis(MasterIndexPivot, EAxis::X);
+			HighlightBlocksInAxis(MasterIndexPivot, EAxis::Y);
 			break;
-		case ESelectionAxis::All:
-			HighlightBlocksInAxis(MasterIndexPivot, ESelectionAxis::X);
-			HighlightBlocksInAxis(MasterIndexPivot, ESelectionAxis::Y);
-			HighlightBlocksInAxis(MasterIndexPivot, ESelectionAxis::Z);
+		case EAxis::None:
+			HighlightBlocksInAxis(MasterIndexPivot, EAxis::X);
+			HighlightBlocksInAxis(MasterIndexPivot, EAxis::Y);
+			HighlightBlocksInAxis(MasterIndexPivot, EAxis::Z);
 			break;
 		default:
 			break;
 	}
 }
 
-void APicrossGrid::HighlightBlocksInAxis(const int32 MasterIndexPivot, const ESelectionAxis AxisToHighlight)
+void APicrossGrid::HighlightBlocksInAxis(const int32 MasterIndexPivot, const EAxis::Type AxisToHighlight)
 {
 	const FIntVector XYZ = Puzzle.GetIndex(MasterIndexPivot);
-	const int32 EndIndex = (AxisToHighlight == ESelectionAxis::X ? Puzzle.X() : AxisToHighlight == ESelectionAxis::Y ? Puzzle.Y() : Puzzle.Z());
+	const int32 EndIndex = (AxisToHighlight == EAxis::X ? Puzzle.X() : AxisToHighlight == EAxis::Y ? Puzzle.Y() : Puzzle.Z());
 
 	for (int32 AxisIndex = 0; AxisIndex < EndIndex; ++AxisIndex)
 	{
-		const FIntVector MasterIndex = FIntVector(AxisToHighlight == ESelectionAxis::X ? AxisIndex : XYZ.X, AxisToHighlight == ESelectionAxis::Y ? AxisIndex : XYZ.Y, AxisToHighlight == ESelectionAxis::Z ? AxisIndex : XYZ.Z);
+		const FIntVector MasterIndex = FIntVector(AxisToHighlight == EAxis::X ? AxisIndex : XYZ.X, AxisToHighlight == EAxis::Y ? AxisIndex : XYZ.Y, AxisToHighlight == EAxis::Z ? AxisIndex : XYZ.Z);
 		FTransform HighlightBlockTransform = Puzzle[MasterIndex].Transform;
 		HighlightBlockTransform.SetScale3D(HighlightBlockTransform.GetScale3D() * 1.05f);
 		HighlightBlockTransform.AddToTranslation((-GetActorUpVector()) * 100.f * ((HighlightBlockTransform.GetScale3D().Z - Puzzle[MasterIndex].Transform.GetScale3D().Z) / 2));
@@ -345,12 +347,12 @@ void APicrossGrid::GenerateNumbers()
 
 	if (IsLocked()) return;
 
-	GenerateNumbersForAxis(ESelectionAxis::X);
-	GenerateNumbersForAxis(ESelectionAxis::Y);
-	GenerateNumbersForAxis(ESelectionAxis::Z);
+	GenerateNumbersForAxis(EAxis::X);
+	GenerateNumbersForAxis(EAxis::Y);
+	GenerateNumbersForAxis(EAxis::Z);
 }
 
-void APicrossGrid::GenerateNumbersForAxis(ESelectionAxis Axis)
+void APicrossGrid::GenerateNumbersForAxis(EAxis::Type Axis)
 {
 	if (!Puzzle.IsValid()) return;
 
@@ -359,22 +361,22 @@ void APicrossGrid::GenerateNumbersForAxis(ESelectionAxis Axis)
 	if (Solution.Num() != FArray3D::Size(Puzzle.GetGridSize())) return;
 
 	// Axis1 is Y-axis if we're generating for X-axis, otherwise it's the X-axis.
-	int32 Axis1Size = (Axis == ESelectionAxis::X ? Puzzle.Y() : Puzzle.X());
+	int32 Axis1Size = (Axis == EAxis::X ? Puzzle.Y() : Puzzle.X());
 	for (int32 Axis1 = 0; Axis1 < Axis1Size; ++Axis1)
 	{
 		// Axis2 is Y-axis if we're generating for Z-Axis, otherwise it's the Z-axis.
-		int32 Axis2Size = (Axis == ESelectionAxis::Z ? Puzzle.Y() : Puzzle.Z());
+		int32 Axis2Size = (Axis == EAxis::Z ? Puzzle.Y() : Puzzle.Z());
 		for (int32 Axis2 = 0; Axis2 < Axis2Size; ++Axis2)
 		{
 			FFormatOrderedArguments Numbers;
 			int32 Sum = 0;
 
 			// Axis3 is the axis we're generating numbers for.
-			int32 Axis3Size = (Axis == ESelectionAxis::Z ? Puzzle.Z() : Axis == ESelectionAxis::X ? Puzzle.X() : Puzzle.Y());
+			int32 Axis3Size = (Axis == EAxis::Z ? Puzzle.Z() : Axis == EAxis::X ? Puzzle.X() : Puzzle.Y());
 			for (int32 Axis3 = 0; Axis3 < Axis3Size; ++Axis3)
 			{
 				// De-anonymize Axis1,Axis2,Axis3 into their named version (X,Y,Z)
-				FIntVector XYZ = Axis == ESelectionAxis::X ? FIntVector(Axis3, Axis1, Axis2) : Axis == ESelectionAxis::Y ? FIntVector(Axis1, Axis3, Axis2) : FIntVector(Axis1, Axis2, Axis3);
+				FIntVector XYZ = Axis == EAxis::X ? FIntVector(Axis3, Axis1, Axis2) : Axis == EAxis::Y ? FIntVector(Axis1, Axis3, Axis2) : FIntVector(Axis1, Axis2, Axis3);
 
 				// Count the filled blocks, adding the results to the Numbers "array".
 				bool bCountBlock = Solution[Puzzle.GetIndex(XYZ)];
@@ -395,78 +397,43 @@ void APicrossGrid::GenerateNumbersForAxis(ESelectionAxis Axis)
 			}
 			
 			// Reverse Numbers if Axis is Z since we counted them from opposite side.
-			if (Axis == ESelectionAxis::Z) Algo::Reverse(Numbers);
+			if (Axis == EAxis::Z) Algo::Reverse(Numbers);
 
-			CreateTextFromNumbersForAxis(Axis, Axis1, Axis2, Numbers);
+			CreatePicrossNumber(Axis, Axis1, Axis2, Numbers);
 		}
 	}
 }
 
-void APicrossGrid::CreateTextFromNumbersForAxis(ESelectionAxis Axis, int32 Axis1, int32 Axis2, const FFormatOrderedArguments& Numbers)
+void APicrossGrid::CreatePicrossNumber(const EAxis::Type Axis, int32 Axis1, int32 Axis2, const FFormatOrderedArguments& Numbers)
 {
 	if (Numbers.Num() > 0)
 	{
-		FFormatOrderedArguments ReversedNumbers = Numbers;
-		Algo::Reverse(ReversedNumbers);
-
-		// Generate text from array of numbers with either a comma delimiter or new-line if Z-axis
-		const FText Delimiter = FText::FromString(Axis == ESelectionAxis::Z ? TEXT("\n") : TEXT(", "));
-		const FText Text1 = FText::Join(Delimiter, Numbers);
-		const FText Text2 = FText::Join(Delimiter, ReversedNumbers);
-
-		const FIntVector XYZ = Axis == ESelectionAxis::X ? FIntVector(0, Axis1, Axis2) : Axis == ESelectionAxis::Y ? FIntVector(Axis1, 0, Axis2) : FIntVector(Axis1, Axis2, Puzzle.Z() - 1);
-		const FPicrossBlock& Block = Puzzle[XYZ];
-
-		const FVector RelativeLocation = Axis == ESelectionAxis::X ? FVector(-75.f, 0.f, 50.f) : Axis == ESelectionAxis::Y ? FVector(0.f, -75.f, 50.f) : FVector(0.f, 0.f, 115.f);
-		const FVector WorldLocation = Block.Transform.GetTranslation() + Block.Transform.GetRotation().RotateVector(RelativeLocation);
-
-		const FRotator RelativeRotation1 = Axis == ESelectionAxis::X ? FRotator(0.f, 90.f, 0.f) : Axis == ESelectionAxis::Y ? FRotator(0.f, 180.f, 0.f) : FRotator(0.f, 90.f, 0.f);
-		const FRotator RelativeRotation2 = RelativeRotation1 + FRotator(0.f, 180.f, 0.f);
-
-		const FColor Color = Axis == ESelectionAxis::Z ? FColor::Blue : Axis == ESelectionAxis::Y ? FColor::Green : FColor::Red;
-
-		const EHorizTextAligment HAlignment1 = Axis == ESelectionAxis::Z ? EHorizTextAligment::EHTA_Center : EHorizTextAligment::EHTA_Right;
-		const EHorizTextAligment HAlignment2 = Axis == ESelectionAxis::Z ? EHorizTextAligment::EHTA_Center : EHorizTextAligment::EHTA_Left;
-		const EVerticalTextAligment VAlignment = Axis == ESelectionAxis::Z ? EVerticalTextAligment::EVRTA_TextBottom : EVerticalTextAligment::EVRTA_TextCenter;
-
-		ATextRenderActor* TextActor1 = CreateTextRenderActor(WorldLocation, RelativeRotation1, Text1, Color, HAlignment1, VAlignment);
-		ATextRenderActor* TextActor2 = CreateTextRenderActor(WorldLocation, RelativeRotation2, Text2, Color, HAlignment2, VAlignment);
-		FTextPair TextPair{ TextActor1, TextActor2 };
-
-		switch (Axis)
+		if (PicrossNumberClass)
 		{
-			case ESelectionAxis::X: NumbersXAxis.Add(FIntVector(0, Axis1, Axis2), TextPair); break;
-			case ESelectionAxis::Y: NumbersYAxis.Add(FIntVector(Axis1, 0, Axis2), TextPair); break;
-			case ESelectionAxis::Z: NumbersZAxis.Add(FIntVector(Axis1, Axis2, 0), TextPair); break;
-		}
-	}
-}
-
-ATextRenderActor* APicrossGrid::CreateTextRenderActor(FVector WorldLocation, FRotator RelativeRotation, FText Text, FColor Color, EHorizTextAligment HAlignment, EVerticalTextAligment VAlignment)
-{
-	ATextRenderActor* TextActor = GetWorld()->SpawnActorAbsolute<ATextRenderActor>(WorldLocation, RelativeRotation);
-	if (TextActor)
-	{
-		static const FAttachmentTransformRules AttachmentRules(EAttachmentRule::KeepWorld, EAttachmentRule::KeepRelative, EAttachmentRule::KeepRelative, false);
-		TextActor->AttachToActor(this, AttachmentRules);
-		UTextRenderComponent* TextComponent = TextActor->GetTextRender();
-		if (TextComponent)
-		{
-			TextComponent->SetText(Text);
-			TextComponent->SetTextRenderColor(Color);
-			TextComponent->SetHorizontalAlignment(HAlignment);
-			TextComponent->SetVerticalAlignment(VAlignment);
-			if (NumbersTextMaterial)
+			APicrossNumber* PicrossNumber = GetWorld()->SpawnActor<APicrossNumber>(PicrossNumberClass);
+			if (PicrossNumber)
 			{
-				TextComponent->SetMaterial(0, NumbersTextMaterial);
+				const FIntVector BlockIndex = (Axis == EAxis::X ? FIntVector(0, Axis1, Axis2) : Axis == EAxis::Y ? FIntVector(Axis1, 0, Axis2) : FIntVector(Axis1, Axis2, Puzzle.Z() - 1));
+				const FPicrossBlock& Block = Puzzle[BlockIndex];
+				const FVector RelativeLocation = Axis == EAxis::X ? FVector(-75.f, 0.f, 50.f) : Axis == EAxis::Y ? FVector(0.f, -75.f, 50.f) : FVector(0.f, 0.f, 115.f);
+				const FVector WorldLocation = Block.Transform.GetTranslation() + Block.Transform.GetRotation().RotateVector(RelativeLocation);
+				PicrossNumber->AttachToActor(this, FAttachmentTransformRules::KeepRelativeTransform);
+				PicrossNumber->SetActorLocation(WorldLocation);
+				PicrossNumber->SetActorRelativeRotation(FRotator::ZeroRotator);
+				PicrossNumber->Setup(Axis, Numbers);
+
+				switch (Axis)
+				{
+					case EAxis::X: NumbersXAxis.Add(BlockIndex, PicrossNumber); break;
+					case EAxis::Y: NumbersYAxis.Add(BlockIndex, PicrossNumber); break;
+					case EAxis::Z: NumbersZAxis.Add(BlockIndex, PicrossNumber); break;
+				}
 			}
 		}
 	}
-
-	return TextActor;
 }
 
-void APicrossGrid::ForEachTextActor(const TFunctionRef<void(TPair<FIntVector, FTextPair>&)> Func)
+void APicrossGrid::ForEachPicrossNumber(const TFunctionRef<void(TPair<FIntVector, APicrossNumber*>&)> Func)
 {
 	Algo::ForEach(NumbersXAxis, Func);
 	Algo::ForEach(NumbersYAxis, Func);
@@ -475,13 +442,9 @@ void APicrossGrid::ForEachTextActor(const TFunctionRef<void(TPair<FIntVector, FT
 
 void APicrossGrid::CleanupNumbers()
 {
-	static const auto DestroyTextActors = [](TPair<FIntVector, FTextPair>& Pair) -> void
-	{
-		if (Pair.Value.Text1) Pair.Value.Text1->Destroy();
-		if (Pair.Value.Text2) Pair.Value.Text2->Destroy();
-	};
+	static const auto DestroyTextActors = [](TPair<FIntVector, APicrossNumber*>& Pair) -> void { if (Pair.Value) Pair.Value->Destroy(); };
 
-	ForEachTextActor(DestroyTextActors);
+	ForEachPicrossNumber(DestroyTextActors);
 	NumbersXAxis.Empty();
 	NumbersYAxis.Empty();
 	NumbersZAxis.Empty();
@@ -489,144 +452,36 @@ void APicrossGrid::CleanupNumbers()
 
 void APicrossGrid::UpdateNumbersVisibility()
 {
-	const ESelectionAxis Axis = SelectionAxis;
+	const EAxis::Type Axis = SelectionAxis;
 	const FIntVector Index = LastPivotXYZ;
-	auto ShouldShow = [Axis, Index](TPair<FIntVector, FTextPair>& Pair) -> bool
+	const auto ShowOrHide = [Axis, Index](TPair<FIntVector, APicrossNumber*>& Pair) -> void 
 	{
-		return (Axis == ESelectionAxis::X ? Pair.Key.X == Index.X : Axis == ESelectionAxis::Y ? Pair.Key.Y == Index.Y : Pair.Key.Z == Index.Z);
+		const bool bShowAlways = Axis == EAxis::None;
+		const bool bSameAxis = Axis == Pair.Value->GetAxis();
+		const bool bCorrectIndex = (Axis == EAxis::X ? Pair.Key.X == Index.X : Axis == EAxis::Y ? Pair.Key.Y == Index.Y : Pair.Key.Z == Index.Z);
+		const bool bShouldShow = (bShowAlways || (!bSameAxis && bCorrectIndex));
+		if (Pair.Value) Pair.Value->SetActorHiddenInGame(!bShouldShow);
 	};
+	const auto UpdateRotation = [Axis](TPair<FIntVector, APicrossNumber*>& Pair) -> void { if (Pair.Value) Pair.Value->UpdateRotation(Axis); };
 
-	static const auto HideText = [](TPair<FIntVector, FTextPair>& Pair) -> void
-	{
-		if (Pair.Value.Text1) Pair.Value.Text1->SetActorHiddenInGame(true);
-		if (Pair.Value.Text2) Pair.Value.Text2->SetActorHiddenInGame(true);
-	};
-
-	static const auto ShowText = [](TPair<FIntVector, FTextPair>& Pair) -> void
-	{
-		if (Pair.Value.Text1) Pair.Value.Text1->SetActorHiddenInGame(false);
-		if (Pair.Value.Text2) Pair.Value.Text2->SetActorHiddenInGame(false);
-	};
-
-	ForEachTextActor(HideText);
-
-	switch (SelectionAxis)
-	{
-		case ESelectionAxis::X:
-			Algo::ForEachIf(NumbersYAxis, ShouldShow, ShowText);
-			Algo::ForEachIf(NumbersZAxis, ShouldShow, ShowText);
-			RotateNumbersXAxis();
-			break;
-		case ESelectionAxis::Y:
-			Algo::ForEachIf(NumbersXAxis, ShouldShow, ShowText);
-			Algo::ForEachIf(NumbersZAxis, ShouldShow, ShowText);
-			RotateNumbersYAxis();
-			break;
-		case ESelectionAxis::Z:
-			Algo::ForEachIf(NumbersXAxis, ShouldShow, ShowText);
-			Algo::ForEachIf(NumbersYAxis, ShouldShow, ShowText);
-			RotateNumbersZAxis();
-			break;
-		case ESelectionAxis::All:
-			ForEachTextActor(ShowText);
-			RotateNumbersAllAxis();
-			break;
-	}
-}
-
-void APicrossGrid::RotateNumbersXAxis()
-{
-	const FRotator Rotation1{ 0.f, -180.f, 0.f };
-	const FRotator Rotation2{ 0.f, 0.f, 0.f };
-
-	static const auto SetRotation = [Rotation1, Rotation2](TPair<FIntVector, FTextPair>& Pair) -> void
-	{
-		if (Pair.Value.Text1) Pair.Value.Text1->SetActorRelativeRotation(Rotation1);
-		if (Pair.Value.Text2) Pair.Value.Text2->SetActorRelativeRotation(Rotation2);
-	};
-
-	Algo::ForEach(NumbersYAxis, SetRotation);
-	Algo::ForEach(NumbersZAxis, SetRotation);
-}
-
-void APicrossGrid::RotateNumbersYAxis()
-{
-	const FRotator Rotation1{ 0.f, 90.f, 0.f };
-	const FRotator Rotation2{ 0.f, -90.f, 0.f };
-
-	static const auto SetRotation = [Rotation1, Rotation2](TPair<FIntVector, FTextPair>& Pair) -> void
-	{
-		if (Pair.Value.Text1) Pair.Value.Text1->SetActorRelativeRotation(Rotation1);
-		if (Pair.Value.Text2) Pair.Value.Text2->SetActorRelativeRotation(Rotation2);
-	};
-
-	Algo::ForEach(NumbersXAxis, SetRotation);
-	Algo::ForEach(NumbersZAxis, SetRotation);
-}
-
-void APicrossGrid::RotateNumbersZAxis()
-{
-	const FRotator RotationX1{ 90.f, 90.f, 0.f };
-	const FRotator RotationX2{ -90.f, -90.f, 0.f };
-
-	static const auto SetRotationX = [RotationX1, RotationX2](TPair<FIntVector, FTextPair>& Pair) -> void
-	{
-		if (Pair.Value.Text1) Pair.Value.Text1->SetActorRelativeRotation(RotationX1);
-		if (Pair.Value.Text2) Pair.Value.Text2->SetActorRelativeRotation(RotationX2);
-	};
-
-	const FRotator RotationY1{ 90.f, -180.f, 0.f };
-	const FRotator RotationY2{ -90.f, 0.f, 0.f };
-
-	static const auto SetRotationY = [RotationY1, RotationY2](TPair<FIntVector, FTextPair>& Pair) -> void
-	{
-		if (Pair.Value.Text1) Pair.Value.Text1->SetActorRelativeRotation(RotationY1);
-		if (Pair.Value.Text2) Pair.Value.Text2->SetActorRelativeRotation(RotationY2);
-	};
-
-	Algo::ForEach(NumbersXAxis, SetRotationX);
-	Algo::ForEach(NumbersYAxis, SetRotationY);
-}
-
-void APicrossGrid::RotateNumbersAllAxis()
-{
-	const FRotator RotationXZ1{ 0.f, 90.f, 0.f };
-	const FRotator RotationXZ2{ 0.f, -90.f, 0.f };
-
-	static const auto SetRotationXZ = [RotationXZ1, RotationXZ2](TPair<FIntVector, FTextPair>& Pair) -> void
-	{
-		if (Pair.Value.Text1) Pair.Value.Text1->SetActorRelativeRotation(RotationXZ1);
-		if (Pair.Value.Text2) Pair.Value.Text2->SetActorRelativeRotation(RotationXZ2);
-	};
-
-	const FRotator RotationY1{ 0.f, -180.f, 0.f };
-	const FRotator RotationY2{ 0.f, 0.f, 0.f };
-
-	static const auto SetRotationY = [RotationY1, RotationY2](TPair<FIntVector, FTextPair>& Pair) -> void
-	{
-		if (Pair.Value.Text1) Pair.Value.Text1->SetActorRelativeRotation(RotationY1);
-		if (Pair.Value.Text2) Pair.Value.Text2->SetActorRelativeRotation(RotationY2);
-	};
-
-	Algo::ForEach(NumbersXAxis, SetRotationXZ);
-	Algo::ForEach(NumbersYAxis, SetRotationY);
-	Algo::ForEach(NumbersZAxis, SetRotationXZ);
+	ForEachPicrossNumber(ShowOrHide);
+	ForEachPicrossNumber(UpdateRotation);
 }
 
 void APicrossGrid::Cycle2DRotation(const int32 MasterIndexPivot)
 {
 	if (IsLocked()) return;
 
-	SelectionAxis = (SelectionAxis == ESelectionAxis::All ? ESelectionAxis::Z : SelectionAxis == ESelectionAxis::Z ? ESelectionAxis::Y : SelectionAxis == ESelectionAxis::Y ? ESelectionAxis::X : ESelectionAxis::All);
+	SelectionAxis = (SelectionAxis == EAxis::None ? EAxis::Z : SelectionAxis == EAxis::Z ? EAxis::Y : SelectionAxis == EAxis::Y ? EAxis::X : EAxis::None);
 
 	LastPivotXYZ = MasterIndexPivot >= 0 ? Puzzle.GetIndex(MasterIndexPivot) : LastPivotXYZ;
 
 	switch (SelectionAxis)
 	{
-		case ESelectionAxis::X:		SetRotationXAxis();	break;
-		case ESelectionAxis::Y:		SetRotationYAxis();	break;
-		case ESelectionAxis::Z:		SetRotationZAxis();	break;
-		case ESelectionAxis::All:	EnableAllBlocks();	break;
+		case EAxis::X:		SetRotationXAxis();	break;
+		case EAxis::Y:		SetRotationYAxis();	break;
+		case EAxis::Z:		SetRotationZAxis();	break;
+		case EAxis::None:	EnableAllBlocks();	break;
 	}
 
 	UpdateNumbersVisibility();
@@ -754,15 +609,15 @@ void APicrossGrid::Move2DSelectionUp()
 
 	switch (SelectionAxis)
 	{
-		case ESelectionAxis::X:
+		case EAxis::X:
 			LastPivotXYZ.X = LastPivotXYZ.X > 0 ? LastPivotXYZ.X - 1 : Puzzle.X() - 1;
 			SetRotationXAxis();
 			break;
-		case ESelectionAxis::Y:
+		case EAxis::Y:
 			LastPivotXYZ.Y = LastPivotXYZ.Y > 0 ? LastPivotXYZ.Y - 1 : Puzzle.Y() - 1;
 			SetRotationYAxis();
 			break;
-		case ESelectionAxis::Z:
+		case EAxis::Z:
 			LastPivotXYZ.Z = LastPivotXYZ.Z < Puzzle.Z() - 1 ? LastPivotXYZ.Z + 1 : 0;
 			SetRotationZAxis();
 			break;
@@ -777,21 +632,38 @@ void APicrossGrid::Move2DSelectionDown()
 
 	switch (SelectionAxis)
 	{
-		case ESelectionAxis::X:
+		case EAxis::X:
 			LastPivotXYZ.X = LastPivotXYZ.X < Puzzle.X() - 1 ? LastPivotXYZ.X + 1 : 0;
 			SetRotationXAxis();
 			break;
-		case ESelectionAxis::Y:
+		case EAxis::Y:
 			LastPivotXYZ.Y = LastPivotXYZ.Y < Puzzle.Y() - 1 ? LastPivotXYZ.Y + 1 : 0;
 			SetRotationYAxis();
 			break;
-		case ESelectionAxis::Z:
+		case EAxis::Z:
 			LastPivotXYZ.Z = LastPivotXYZ.Z > 0 ? LastPivotXYZ.Z - 1 : Puzzle.Z() - 1;
 			SetRotationZAxis();
 			break;
 	}
 
 	UpdateNumbersVisibility();
+}
+
+FTransform APicrossGrid::GetIdealPawnTransform(const APawn* Pawn) const
+{
+	if (Pawn)
+	{
+		const FVector Direction = SelectionAxis == EAxis::X ? -GetActorForwardVector() : SelectionAxis == EAxis::Y ? GetActorRightVector() : GetActorUpVector();
+		const float Distance = (DistanceBetweenBlocks * (1.f + (SelectionAxis == EAxis::X ? FMath::Max(Puzzle.Y(), Puzzle.Z()) : SelectionAxis == EAxis::Y ? FMath::Max(Puzzle.X(), Puzzle.Z()) : FMath::Max(Puzzle.X(), Puzzle.Y()))))
+			+ (DistanceBetweenBlocks * (SelectionAxis == EAxis::X ? Puzzle.X() : SelectionAxis == EAxis::Y ? Puzzle.Y() : Puzzle.Z()) / 2.f);
+		FVector Origin, BoxExtent;
+		GetActorBounds(false, Origin, BoxExtent, true);
+		const FVector Location = Origin + Direction * Distance;
+		const FRotator Rotation = UKismetMathLibrary::FindLookAtRotation(Location, Origin);
+		return FTransform(Rotation, Location);
+	}
+	
+	return FTransform(FRotator::ZeroRotator, FVector::ZeroVector, FVector::ZeroVector);
 }
 
 void APicrossGrid::LoadPuzzle(FAssetData PuzzleToLoad)
