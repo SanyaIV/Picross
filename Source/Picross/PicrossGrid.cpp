@@ -153,8 +153,8 @@ void APicrossGrid::CreateGrid()
 	const float TargetSize = 10.f;
 	Puzzle.DynamicScale = TargetSize / MaxAxis;
 
-	const float DynamicDistanceBetweenBlocks = DistanceBetweenBlocks * Puzzle.DynamicScale;
 	const FVector DynamicScale = FVector::OneVector * Puzzle.DynamicScale;
+	const float DynamicDistanceBetweenBlocks = (DistanceBetweenBlocks * Puzzle.DynamicScale) + (100.f * DynamicScale.GetMax());
 
 	FVector StartPosition = GetActorLocation();
 	StartPosition -= GetActorRightVector() * (DynamicDistanceBetweenBlocks * (Puzzle.Y() / 2) - (Puzzle.Y() % 2 == 0 ? DynamicDistanceBetweenBlocks / 2 : 0));
@@ -678,8 +678,7 @@ FTransform APicrossGrid::GetIdealPawnTransform(const APawn* Pawn) const
 	{
 		const float DynamicDistanceBetweenBlocks = DistanceBetweenBlocks * Puzzle.DynamicScale;
 		const FVector Direction = SelectionAxis == EAxis::X ? -GetActorForwardVector() : SelectionAxis == EAxis::Y ? GetActorRightVector() : GetActorUpVector();
-		const float Distance = (DynamicDistanceBetweenBlocks * (1.f + (SelectionAxis == EAxis::X ? FMath::Max(Puzzle.Y(), Puzzle.Z()) : SelectionAxis == EAxis::Y ? FMath::Max(Puzzle.X(), Puzzle.Z()) : FMath::Max(Puzzle.X(), Puzzle.Y()))))
-			+ (DynamicDistanceBetweenBlocks * (SelectionAxis == EAxis::X ? Puzzle.X() : SelectionAxis == EAxis::Y ? Puzzle.Y() : Puzzle.Z()) / 2.f);
+		const float Distance = 2000.f;
 		FVector Origin, BoxExtent;
 		GetActorBounds(false, Origin, BoxExtent, true);
 		const FVector Location = Origin + Direction * Distance;

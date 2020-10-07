@@ -193,7 +193,7 @@ private:
 
 	// The distance to use between the blocks when spawning them.
 	UPROPERTY(EditAnywhere, Category = "Picross", meta = (AllowPrivateAccess = "true"))
-	float DistanceBetweenBlocks = 102.f;
+	float DistanceBetweenBlocks = 5.f;
 
 	// Keeps track of the current axis of selection.
 	TEnumAsByte<EAxis::Type> SelectionAxis = EAxis::None;
