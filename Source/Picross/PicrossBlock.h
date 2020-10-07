@@ -25,4 +25,6 @@ struct PICROSS_API FPicrossBlock
 	FTransform Transform;
 	UPROPERTY(VisibleAnywhere)
 	int32 MasterIndex;
+	UPROPERTY(VisibleAnywhere)
+	int32 InstanceIndex;
 };

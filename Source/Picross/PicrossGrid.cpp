@@ -168,7 +168,7 @@ void APicrossGrid::CreateGrid()
 				BlockPosition += GetActorUpVector() * OffsetZ;
 
 				const int32 MasterIndex = Puzzle.GetIndex(FIntVector(X,Y,Z));
-				const FPicrossBlock& Block = Puzzle[MasterIndex] = FPicrossBlock{ EBlockState::Clear, FTransform(GetActorRotation(), BlockPosition, FVector::OneVector), MasterIndex };
+				FPicrossBlock& Block = Puzzle[MasterIndex] = FPicrossBlock{ EBlockState::Clear, FTransform(GetActorRotation(), BlockPosition, FVector::OneVector), MasterIndex, INDEX_NONE };
 				CreateBlockInstance(Block);
 			}
 		}
@@ -226,7 +226,7 @@ void APicrossGrid::UpdateBlocks(const int32 StartMasterIndex, const int32 EndMas
 				const FIntVector Index = FIntVector(X, Y, Z);
 				if (Puzzle[Index].State == PreviousState)
 				{
-					UpdateBlockState(Puzzle[Index], NewState, BlockInstances[PreviousState]->PerInstanceSMCustomData.IndexOfByKey(static_cast<float>(Puzzle.GetIndex(Index))));
+					UpdateBlockState(Puzzle[Index], NewState);
 				}
 			}
 		}
@@ -304,13 +304,13 @@ void APicrossGrid::HighlightBlocksInAxis(const int32 MasterIndexPivot, const EAx
 	}
 }
 
-void APicrossGrid::EnableOnlyFilledBlocks() const
+void APicrossGrid::EnableOnlyFilledBlocks()
 {
 	if (IsLocked()) return;
 
 	DisableAllBlocks();
 
-	for (const FPicrossBlock& Block : Puzzle)
+	for (FPicrossBlock& Block : Puzzle)
 	{
 		if (Block.State == EBlockState::Filled)
 		{
@@ -319,14 +319,23 @@ void APicrossGrid::EnableOnlyFilledBlocks() const
 	}
 }
 
-void APicrossGrid::UpdateBlockState(FPicrossBlock& Block, const EBlockState NewState, const int32 PreviousInstanceIndex)
+void APicrossGrid::UpdateBlockState(FPicrossBlock& Block, const EBlockState NewState)
 {
 	if (IsLocked()) return;
 
-	if (Block.State != NewState && PreviousInstanceIndex != INDEX_NONE)
+	if (Block.State != NewState && Block.InstanceIndex != INDEX_NONE)
 	{
 		const EBlockState PreviousState = Block.State;
+		const int32 PreviousInstanceIndex = Block.InstanceIndex;
 		BlockInstances[PreviousState]->RemoveInstance(PreviousInstanceIndex);
+
+		// Side effect of removing a instance in a HISM is that it swaps with another block before removing. That other block then has an outdated InstanceIndex saved, we update that here.
+		const int32 PreviousInstanceCustomDataIndex = PreviousInstanceIndex * BlockInstances[PreviousState]->NumCustomDataFloats;
+		if (BlockInstances[PreviousState]->PerInstanceSMCustomData.IsValidIndex(PreviousInstanceCustomDataIndex))
+		{
+			const int32 SwappedBlockMasterIndex = static_cast<int32>(BlockInstances[PreviousState]->PerInstanceSMCustomData[PreviousInstanceCustomDataIndex]);
+			Puzzle[SwappedBlockMasterIndex].InstanceIndex = PreviousInstanceIndex;
+		}
 
 		Block.State = NewState;
 		CreateBlockInstance(Block);
@@ -336,9 +345,11 @@ void APicrossGrid::UpdateBlockState(FPicrossBlock& Block, const EBlockState NewS
 	}
 }
 
-void APicrossGrid::CreateBlockInstance(const FPicrossBlock& Block) const
+void APicrossGrid::CreateBlockInstance(FPicrossBlock& Block) const
 {
-	BlockInstances[Block.State]->SetCustomDataValue(BlockInstances[Block.State]->AddInstanceWorldSpace(Block.Transform), 0, static_cast<float>(Block.MasterIndex));
+	const int32 InstanceIndex = BlockInstances[Block.State]->AddInstanceWorldSpace(Block.Transform);
+	BlockInstances[Block.State]->SetCustomDataValue(InstanceIndex, 0, static_cast<float>(Block.MasterIndex));
+	Block.InstanceIndex = InstanceIndex;
 }
 
 void APicrossGrid::GenerateNumbers()
@@ -487,7 +498,7 @@ void APicrossGrid::Cycle2DRotation(const int32 MasterIndexPivot)
 	UpdateNumbersVisibility();
 }
 
-void APicrossGrid::SetRotationXAxis() const
+void APicrossGrid::SetRotationXAxis()
 {
 	if (IsLocked()) return;
 
@@ -502,7 +513,7 @@ void APicrossGrid::SetRotationXAxis() const
 	}
 }
 
-void APicrossGrid::SetRotationYAxis() const
+void APicrossGrid::SetRotationYAxis()
 {
 	if (IsLocked()) return;
 
@@ -517,7 +528,7 @@ void APicrossGrid::SetRotationYAxis() const
 	}
 }
 
-void APicrossGrid::SetRotationZAxis() const
+void APicrossGrid::SetRotationZAxis()
 {
 	if (IsLocked()) return;
 
@@ -532,19 +543,19 @@ void APicrossGrid::SetRotationZAxis() const
 	}
 }
 
-void APicrossGrid::EnableAllBlocks() const
+void APicrossGrid::EnableAllBlocks()
 {
 	if (IsLocked()) return;
 
 	DisableAllBlocks();
 
-	for (const FPicrossBlock& Block : Puzzle)
+	for (FPicrossBlock& Block : Puzzle)
 	{
 		CreateBlockInstance(Block);
 	}
 }
 
-void APicrossGrid::DisableAllBlocks() const
+void APicrossGrid::DisableAllBlocks()
 {
 	if (IsLocked()) return;
 
@@ -554,6 +565,10 @@ void APicrossGrid::DisableAllBlocks() const
 		{
 			Pair.Value->ClearInstances();
 		}
+	}
+	for (FPicrossBlock& Block : Puzzle)
+	{
+		Block.InstanceIndex = INDEX_NONE;
 	}
 }
 

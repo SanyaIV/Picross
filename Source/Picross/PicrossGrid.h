@@ -141,20 +141,20 @@ private:
 	void CleanupNumbers();
 	void UpdateNumbersVisibility();
 
-	void SetRotationXAxis() const;
-	void SetRotationYAxis() const;
-	void SetRotationZAxis() const;
+	void SetRotationXAxis();
+	void SetRotationYAxis();
+	void SetRotationZAxis();
 
-	void UpdateBlockState(FPicrossBlock& Block, const EBlockState NewState, const int32 PreviousInstanceIndex);
-	void CreateBlockInstance(const FPicrossBlock& Block) const;
+	void UpdateBlockState(FPicrossBlock& Block, const EBlockState NewState);
+	void CreateBlockInstance(FPicrossBlock& Block) const;
 	void HighlightBlocksInAxis(const int32 MasterIndexPivot, const EAxis::Type AxisToHighlight);
 
 	UFUNCTION(BlueprintCallable, CallInEditor, Category = "Picross")
-	void EnableOnlyFilledBlocks() const;
+	void EnableOnlyFilledBlocks();
 	UFUNCTION(BlueprintCallable, CallInEditor, Category = "Picross")
-	void EnableAllBlocks() const;
+	void EnableAllBlocks();
 	UFUNCTION(BlueprintCallable, CallInEditor, Category = "Picross")
-	void DisableAllBlocks() const;
+	void DisableAllBlocks();
 
 	void Lock();
 	void Unlock();
