@@ -41,37 +41,39 @@ struct FPicrossPuzzle
 
 public:
 	// Constructors & Assignments
-	FORCEINLINE FPicrossPuzzle() : Puzzle(nullptr) {}
-	FORCEINLINE FPicrossPuzzle(UPicrossPuzzleData* Puzzle) : Puzzle(Puzzle) { if(Puzzle) Grid.SetNum(FArray3D::Size(Puzzle->GetGridSize())); }
-	FORCEINLINE FPicrossPuzzle(const FPicrossPuzzle&) = default;
-	FORCEINLINE FPicrossPuzzle(FPicrossPuzzle&&) = default;
-	FORCEINLINE FPicrossPuzzle& operator=(const FPicrossPuzzle&) = default;
-	FORCEINLINE FPicrossPuzzle& operator=(FPicrossPuzzle&&) = default;
+	FPicrossPuzzle() : Puzzle(nullptr) {}
+	FPicrossPuzzle(UPicrossPuzzleData* Puzzle) : Puzzle(Puzzle) { if(Puzzle) Grid.SetNum(FArray3D::Size(Puzzle->GetGridSize())); }
+	FPicrossPuzzle(const FPicrossPuzzle&) = default;
+	FPicrossPuzzle(FPicrossPuzzle&&) = default;
+	FPicrossPuzzle& operator=(const FPicrossPuzzle&) = default;
+	FPicrossPuzzle& operator=(FPicrossPuzzle&&) = default;
 
 	// Getters
-	FORCEINLINE UPicrossPuzzleData* GetPuzzleData() { return Puzzle; }
-	FORCEINLINE UPicrossPuzzleData const* const GetPuzzleData() const { return Puzzle; }
-	FORCEINLINE FIntVector GetGridSize() const { return Puzzle ? Puzzle->GetGridSize() : FIntVector(INDEX_NONE); }
-	FORCEINLINE int32 X() const { return Puzzle ? Puzzle->GetGridSize().X : INDEX_NONE; }
-	FORCEINLINE int32 Y() const { return Puzzle ? Puzzle->GetGridSize().Y : INDEX_NONE; }
-	FORCEINLINE int32 Z() const { return Puzzle ? Puzzle->GetGridSize().Z : INDEX_NONE; }
-	FORCEINLINE TArray<FPicrossBlock>& GetGrid() { return Grid; }
-	FORCEINLINE const TArray<FPicrossBlock>& GetGrid() const { return Grid; }
-	FORCEINLINE int32 GetIndex(FIntVector ThreeDimensionalIndex) const { return Puzzle ? FArray3D::TranslateTo1D(Puzzle->GetGridSize(), ThreeDimensionalIndex) : INDEX_NONE; }
-	FORCEINLINE FIntVector GetIndex(int32 OneDimensionalIndex) const { return Puzzle ? FArray3D::TranslateTo3D(Puzzle->GetGridSize(), OneDimensionalIndex) : FIntVector(INDEX_NONE); }
-	FORCEINLINE bool IsValid() const { return (Puzzle != nullptr && FArray3D::ValidateDimensions(Puzzle->GetGridSize())); }
+	UPicrossPuzzleData* GetPuzzleData() { return Puzzle; }
+	UPicrossPuzzleData const* const GetPuzzleData() const { return Puzzle; }
+	FIntVector GetGridSize() const { return Puzzle ? Puzzle->GetGridSize() : FIntVector(INDEX_NONE); }
+	int32 X() const { return Puzzle ? Puzzle->GetGridSize().X : INDEX_NONE; }
+	int32 Y() const { return Puzzle ? Puzzle->GetGridSize().Y : INDEX_NONE; }
+	int32 Z() const { return Puzzle ? Puzzle->GetGridSize().Z : INDEX_NONE; }
+	TArray<FPicrossBlock>& GetGrid() { return Grid; }
+	const TArray<FPicrossBlock>& GetGrid() const { return Grid; }
+	int32 GetIndex(FIntVector ThreeDimensionalIndex) const { return Puzzle ? FArray3D::TranslateTo1D(Puzzle->GetGridSize(), ThreeDimensionalIndex) : INDEX_NONE; }
+	FIntVector GetIndex(int32 OneDimensionalIndex) const { return Puzzle ? FArray3D::TranslateTo3D(Puzzle->GetGridSize(), OneDimensionalIndex) : FIntVector(INDEX_NONE); }
+	bool IsValid() const { return (Puzzle != nullptr && FArray3D::ValidateDimensions(Puzzle->GetGridSize())); }
 
 	// Ranged for redirection
-	FORCEINLINE auto begin() { return Grid.begin(); }
-	FORCEINLINE auto begin() const { return Grid.begin(); }
-	FORCEINLINE auto end() { return Grid.end(); }
-	FORCEINLINE auto end() const { return Grid.end(); }
+	auto begin() { return Grid.begin(); }
+	auto begin() const { return Grid.begin(); }
+	auto end() { return Grid.end(); }
+	auto end() const { return Grid.end(); }
 
 	// Functions to access the array
-	FORCEINLINE FPicrossBlock& operator[](int32 OneDimensionalIndex) { return Grid[OneDimensionalIndex]; }
-	FORCEINLINE const FPicrossBlock& operator[](int32 OneDimensionalIndex) const { return Grid[OneDimensionalIndex]; }
-	FORCEINLINE FPicrossBlock& operator[](FIntVector ThreeDimensionalIndex) { return Grid[GetIndex(ThreeDimensionalIndex)]; }
-	FORCEINLINE const FPicrossBlock& operator[](FIntVector ThreeDimensionalIndex) const { return Grid[GetIndex(ThreeDimensionalIndex)]; }
+	FPicrossBlock& operator[](int32 OneDimensionalIndex) { return Grid[OneDimensionalIndex]; }
+	const FPicrossBlock& operator[](int32 OneDimensionalIndex) const { return Grid[OneDimensionalIndex]; }
+	FPicrossBlock& operator[](FIntVector ThreeDimensionalIndex) { return Grid[GetIndex(ThreeDimensionalIndex)]; }
+	const FPicrossBlock& operator[](FIntVector ThreeDimensionalIndex) const { return Grid[GetIndex(ThreeDimensionalIndex)]; }
+
+	float DynamicScale = 1.f;
 
 private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Picross Grid", meta = (AllowPrivateAccess = "true"))

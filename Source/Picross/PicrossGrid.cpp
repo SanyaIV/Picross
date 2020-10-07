@@ -149,26 +149,33 @@ void APicrossGrid::CreateGrid()
 	SolutionFilledBlocksCount = Algo::Count(Puzzle.GetPuzzleData()->GetSolution(), true);
 	CurrentlyFilledBlocksCount = 0;
 
+	const int32 MaxAxis = Puzzle.GetGridSize().GetMax();
+	const float TargetSize = 10.f;
+	Puzzle.DynamicScale = TargetSize / MaxAxis;
+
+	const float DynamicDistanceBetweenBlocks = DistanceBetweenBlocks * Puzzle.DynamicScale;
+	const FVector DynamicScale = FVector::OneVector * Puzzle.DynamicScale;
+
 	FVector StartPosition = GetActorLocation();
-	StartPosition -= GetActorRightVector() * (DistanceBetweenBlocks * (Puzzle.Y() / 2) - (Puzzle.Y() % 2 == 0 ? DistanceBetweenBlocks / 2 : 0));
-	StartPosition -= GetActorForwardVector() * (DistanceBetweenBlocks * (Puzzle.X() / 2) - (Puzzle.X() % 2 == 0 ? DistanceBetweenBlocks / 2 : 0));
+	StartPosition -= GetActorRightVector() * (DynamicDistanceBetweenBlocks * (Puzzle.Y() / 2) - (Puzzle.Y() % 2 == 0 ? DynamicDistanceBetweenBlocks / 2 : 0));
+	StartPosition -= GetActorForwardVector() * (DynamicDistanceBetweenBlocks * (Puzzle.X() / 2) - (Puzzle.X() % 2 == 0 ? DynamicDistanceBetweenBlocks / 2 : 0));
 
 	for (int32 Z = 0; Z < Puzzle.Z(); ++Z)
 	{
-		const float OffsetZ = DistanceBetweenBlocks * Z;
+		const float OffsetZ = DynamicDistanceBetweenBlocks * Z;
 		for (int32 Y = 0; Y < Puzzle.Y(); ++Y)
 		{
-			const float OffsetY = DistanceBetweenBlocks * Y;
+			const float OffsetY = DynamicDistanceBetweenBlocks * Y;
 			for (int32 X = 0; X < Puzzle.X(); ++X)
 			{
-				const float OffsetX = DistanceBetweenBlocks * X;
+				const float OffsetX = DynamicDistanceBetweenBlocks * X;
 				FVector BlockPosition = StartPosition;
 				BlockPosition += GetActorForwardVector() * OffsetX;
 				BlockPosition += GetActorRightVector() * OffsetY;
 				BlockPosition += GetActorUpVector() * OffsetZ;
 
 				const int32 MasterIndex = Puzzle.GetIndex(FIntVector(X,Y,Z));
-				FPicrossBlock& Block = Puzzle[MasterIndex] = FPicrossBlock{ EBlockState::Clear, FTransform(GetActorRotation(), BlockPosition, FVector::OneVector), MasterIndex, INDEX_NONE };
+				FPicrossBlock& Block = Puzzle[MasterIndex] = FPicrossBlock{ EBlockState::Clear, FTransform(GetActorRotation(), BlockPosition, DynamicScale), MasterIndex, INDEX_NONE };
 				CreateBlockInstance(Block);
 			}
 		}
@@ -426,11 +433,12 @@ void APicrossGrid::CreatePicrossNumber(const EAxis::Type Axis, int32 Axis1, int3
 			{
 				const FIntVector BlockIndex = (Axis == EAxis::X ? FIntVector(0, Axis1, Axis2) : Axis == EAxis::Y ? FIntVector(Axis1, 0, Axis2) : FIntVector(Axis1, Axis2, Puzzle.Z() - 1));
 				const FPicrossBlock& Block = Puzzle[BlockIndex];
-				const FVector RelativeLocation = Axis == EAxis::X ? FVector(-75.f, 0.f, 50.f) : Axis == EAxis::Y ? FVector(0.f, -75.f, 50.f) : FVector(0.f, 0.f, 115.f);
+				const FVector RelativeLocation = (Axis == EAxis::X ? FVector(-75.f, 0.f, 50.f) : Axis == EAxis::Y ? FVector(0.f, -75.f, 50.f) : FVector(0.f, 0.f, 115.f)) * Puzzle.DynamicScale;
 				const FVector WorldLocation = Block.Transform.GetTranslation() + Block.Transform.GetRotation().RotateVector(RelativeLocation);
 				PicrossNumber->AttachToActor(this, FAttachmentTransformRules::KeepRelativeTransform);
 				PicrossNumber->SetActorLocation(WorldLocation);
 				PicrossNumber->SetActorRelativeRotation(FRotator::ZeroRotator);
+				PicrossNumber->SetActorScale3D(FVector(Puzzle.DynamicScale));
 				PicrossNumber->Setup(Axis, Numbers);
 
 				switch (Axis)
@@ -668,9 +676,10 @@ FTransform APicrossGrid::GetIdealPawnTransform(const APawn* Pawn) const
 {
 	if (Pawn)
 	{
+		const float DynamicDistanceBetweenBlocks = DistanceBetweenBlocks * Puzzle.DynamicScale;
 		const FVector Direction = SelectionAxis == EAxis::X ? -GetActorForwardVector() : SelectionAxis == EAxis::Y ? GetActorRightVector() : GetActorUpVector();
-		const float Distance = (DistanceBetweenBlocks * (1.f + (SelectionAxis == EAxis::X ? FMath::Max(Puzzle.Y(), Puzzle.Z()) : SelectionAxis == EAxis::Y ? FMath::Max(Puzzle.X(), Puzzle.Z()) : FMath::Max(Puzzle.X(), Puzzle.Y()))))
-			+ (DistanceBetweenBlocks * (SelectionAxis == EAxis::X ? Puzzle.X() : SelectionAxis == EAxis::Y ? Puzzle.Y() : Puzzle.Z()) / 2.f);
+		const float Distance = (DynamicDistanceBetweenBlocks * (1.f + (SelectionAxis == EAxis::X ? FMath::Max(Puzzle.Y(), Puzzle.Z()) : SelectionAxis == EAxis::Y ? FMath::Max(Puzzle.X(), Puzzle.Z()) : FMath::Max(Puzzle.X(), Puzzle.Y()))))
+			+ (DynamicDistanceBetweenBlocks * (SelectionAxis == EAxis::X ? Puzzle.X() : SelectionAxis == EAxis::Y ? Puzzle.Y() : Puzzle.Z()) / 2.f);
 		FVector Origin, BoxExtent;
 		GetActorBounds(false, Origin, BoxExtent, true);
 		const FVector Location = Origin + Direction * Distance;
