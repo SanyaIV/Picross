@@ -5,17 +5,15 @@
 #include "Algo/Count.h"
 #include "Algo/ForEach.h"
 #include "Algo/Reverse.h"
-#include "Algo/Sort.h"
 #include "AssetDataObject.h"
 #include "Blueprint/UserWidget.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
-#include "Components/ListView.h"
 #include "Components/TextBlock.h"
 #include "Engine/AssetManager.h"
-#include "Engine/ObjectLibrary.h"
 #include "Engine/TextRenderActor.h"
 #include "Materials/MaterialInstance.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "UI/PuzzleBrowserWidget.h"
 
 
 // Sets default values
@@ -79,29 +77,11 @@ void APicrossGrid::CreatePuzzleBrowser()
 {
 	if (PuzzleBrowserWidgetClass)
 	{
-		PuzzleBrowserWidget = CreateWidget(GetWorld(), PuzzleBrowserWidgetClass, TEXT("Puzzle Browser"));
+		PuzzleBrowserWidget = Cast<UPuzzleBrowserWidget>(CreateWidget(GetWorld(), PuzzleBrowserWidgetClass, TEXT("Puzzle Browser")));
 		if (PuzzleBrowserWidget)
 		{
 			PuzzleBrowserWidget->AddToViewport();
-			UListView* List = Cast<UListView>(PuzzleBrowserWidget->GetWidgetFromName(TEXT("Puzzle_Browser")));
-			if (List)
-			{
-				TArray<UAssetDataObject*> AssetDataObjects;
-				for (FAssetData AssetData : GetAllPuzzles())
-				{
-					UAssetDataObject* AssetDataObject = NewObject<UAssetDataObject>(List, UAssetDataObject::StaticClass());
-					AssetDataObject->SetAssetData(AssetData);
-					AssetDataObject->SetPicrossGrid(this);
-					AssetDataObjects.Push(AssetDataObject);
-				}
-
-				Algo::Sort(AssetDataObjects, [](UAssetDataObject* A, UAssetDataObject* B) { return (A && B) ? (FArray3D::Size(A->GetGridSize()) < FArray3D::Size(B->GetGridSize())) : false; });
-
-				for (UAssetDataObject* AssetDataObject : AssetDataObjects)
-				{
-					List->AddItem(AssetDataObject);
-				}
-			}
+			PuzzleBrowserWidget->SetPicrossGrid(this);
 		}
 	}
 }
@@ -120,20 +100,6 @@ void APicrossGrid::ClosePuzzleBrowser() const
 	{
 		PuzzleBrowserWidget->RemoveFromViewport();
 	}
-}
-
-TArray<FAssetData> APicrossGrid::GetAllPuzzles() const
-{
-	UObjectLibrary* ObjectLibrary = nullptr;
-	if (!ObjectLibrary)
-	{
-		UAssetManager& AssetManager = UAssetManager::Get();
-		TArray<FAssetData> AssetDatas;
-		AssetManager.GetPrimaryAssetDataList(TEXT("PicrossPuzzleData"), AssetDatas);
-		return AssetDatas;
-	}
-
-	return TArray<FAssetData>();
 }
 
 void APicrossGrid::CreateGrid()

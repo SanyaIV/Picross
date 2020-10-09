@@ -96,7 +96,6 @@ public:
 
 	void OpenPuzzleBrowser() const;
 	void ClosePuzzleBrowser() const;
-	TArray<FAssetData> GetAllPuzzles() const;
 	
 	bool IsLocked() const;
 
@@ -208,5 +207,5 @@ private:
 	TSubclassOf<UUserWidget> PuzzleBrowserWidgetClass = nullptr;
 	// Pointer to the created puzzle browser widget.
 	UPROPERTY()
-	UUserWidget* PuzzleBrowserWidget = nullptr;
+	class UPuzzleBrowserWidget* PuzzleBrowserWidget = nullptr;
 };
