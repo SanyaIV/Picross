@@ -3,6 +3,7 @@
 
 #include "PicrossPawn.h"
 #include "Camera/CameraComponent.h"
+#include "Components/InstancedStaticMeshComponent.h"
 #include "Components/SphereComponent.h"
 #include "Engine/Classes/Kismet/GameplayStatics.h"
 #include "GameFramework/FloatingPawnMovement.h"

@@ -6,7 +6,11 @@ public class Picross : ModuleRules
 {
 	public Picross(ReadOnlyTargetRules Target) : base(Target)
 	{
-		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
+		PCHUsage = PCHUsageMode.NoSharedPCHs;
+
+		PrivatePCHHeaderFile = "Picross.h";
+
+		CppStandard = CppStandardVersion.Cpp17;
 
 		//bUseUnity = Target.Configuration == UnrealTargetConfiguration.Shipping;
 

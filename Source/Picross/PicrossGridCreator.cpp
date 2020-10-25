@@ -1,9 +1,11 @@
 // Copyright Sanya Larsson 2020
 
+extern UNREALED_API class UEditorEngine* GEditor;
 
 #include "PicrossGridCreator.h"
 #include "PicrossPuzzleFactory.h"
 #include "AssetToolsModule.h"
+#include "Editor/EditorEngine.h"
 
 
 void APicrossGridCreator::BeginPlay()

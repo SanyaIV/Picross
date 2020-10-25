@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "UObject/NoExportTypes.h"
+#include "AssetData.h"
 #include "AssetDataObject.generated.h"
 
 
