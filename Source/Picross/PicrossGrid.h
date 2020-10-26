@@ -9,6 +9,9 @@
 #include "PicrossBlock.h"
 #include "PicrossPuzzleData.h"
 #include "GameFramework/Actor.h"
+#include "Misc/Optional.h"
+
+// Generated
 #include "PicrossGrid.generated.h"
 
 // Forward declarations
@@ -110,7 +113,7 @@ public:
 	void Move2DSelectionUp();
 	void Move2DSelectionDown();
 
-	FTransform GetIdealPawnTransform(const APawn* Pawn) const;
+	TOptional<FTransform> GetIdealPawnTransform(const APawn* Pawn) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Picross")
 	void LoadPuzzle(FAssetData PuzzleToLoad); 

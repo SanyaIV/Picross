@@ -638,21 +638,32 @@ void APicrossGrid::Move2DSelectionDown()
 	UpdateNumbersVisibility();
 }
 
-FTransform APicrossGrid::GetIdealPawnTransform(const APawn* Pawn) const
+TOptional<FTransform> APicrossGrid::GetIdealPawnTransform(const APawn* Pawn) const
 {
-	if (Pawn)
+	static const TMap<EAxis::Type, FRotator> Rotations{
+		{ EAxis::X, FRotator(0.f, 0.f, 0.f) },
+		{ EAxis::Y, FRotator(0.f, -90.f, 0.f) },
+		{ EAxis::Z, FRotator(-89.99f, -90.f, 0.f) }
+	};
+
+	if (Rotations.Contains(SelectionAxis) && Pawn)
 	{
-		const float DynamicDistanceBetweenBlocks = DistanceBetweenBlocks * Puzzle.DynamicScale;
+		const int32 MaxSize = SelectionAxis == EAxis::X ? FMath::Max(Puzzle.Y(), Puzzle.Z()) : SelectionAxis == EAxis::Y ? FMath::Max(Puzzle.X(), Puzzle.Z()) : FMath::Max(Puzzle.X(), Puzzle.Y());
 		const FVector Direction = SelectionAxis == EAxis::X ? -GetActorForwardVector() : SelectionAxis == EAxis::Y ? GetActorRightVector() : GetActorUpVector();
-		const float Distance = 2000.f;
+		const float Distance = 1150.f + 300 * Puzzle.DynamicScale;
 		FVector Origin, BoxExtent;
 		GetActorBounds(false, Origin, BoxExtent, true);
+		const FVector Pivot = Puzzle[LastPivotXYZ].Transform.GetLocation();
+		Origin = FVector{ 
+			SelectionAxis == EAxis::X ? Pivot.X : Origin.X,
+			SelectionAxis == EAxis::Y ? Pivot.Y : Origin.Y,
+			SelectionAxis == EAxis::Z ? Pivot.Z : Origin.Z
+		};
 		const FVector Location = Origin + Direction * Distance;
-		const FRotator Rotation = UKismetMathLibrary::FindLookAtRotation(Location, Origin);
-		return FTransform(Rotation, Location);
+		return FTransform(GetTransform().TransformRotation(Rotations.FindChecked(SelectionAxis).Quaternion()), Location);
 	}
 	
-	return FTransform(FRotator::ZeroRotator, FVector::ZeroVector, FVector::ZeroVector);
+	return {};
 }
 
 void APicrossGrid::LoadPuzzle(FAssetData PuzzleToLoad)

@@ -252,14 +252,15 @@ void APicrossPawn::MoveToIdealTransform()
 {
 	if (PicrossGrid)
 	{
-		const FTransform IdealTransform = PicrossGrid->GetIdealPawnTransform(this);
-		if (IdealTransform.IsValid())
+		const TOptional<FTransform> IdealTransform = PicrossGrid->GetIdealPawnTransform(this);
+		if (IdealTransform.IsSet())
 		{
-			SetActorTransform(IdealTransform);
+			SetActorLocation(IdealTransform.GetValue().GetLocation());
+			
 			APicrossPlayerController* PlayerController = Cast<APicrossPlayerController>(GetController());
 			if (PlayerController)
 			{
-				PlayerController->SetControlRotation(IdealTransform.GetRotation().Rotator());
+				PlayerController->SetControlRotation(IdealTransform.GetValue().GetRotation().Rotator());
 			}
 		}
 	}
