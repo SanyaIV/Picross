@@ -648,7 +648,6 @@ TOptional<FTransform> APicrossGrid::GetIdealPawnTransform(const APawn* Pawn) con
 
 	if (Rotations.Contains(SelectionAxis) && Pawn)
 	{
-		const int32 MaxSize = SelectionAxis == EAxis::X ? FMath::Max(Puzzle.Y(), Puzzle.Z()) : SelectionAxis == EAxis::Y ? FMath::Max(Puzzle.X(), Puzzle.Z()) : FMath::Max(Puzzle.X(), Puzzle.Y());
 		const FVector Direction = SelectionAxis == EAxis::X ? -GetActorForwardVector() : SelectionAxis == EAxis::Y ? GetActorRightVector() : GetActorUpVector();
 		const float Distance = 1150.f + 300 * Puzzle.DynamicScale;
 		FVector Origin, BoxExtent;
