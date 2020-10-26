@@ -80,7 +80,7 @@ void APicrossPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	PlayerInputComponent->BindAxis("Move Forward", this, &APicrossPawn::MoveForward);
 	PlayerInputComponent->BindAxis("Move Right", this, &APicrossPawn::MoveRight);
 	PlayerInputComponent->BindAxis("Move Up", this, &APicrossPawn::MoveUp);
-	PlayerInputComponent->BindAction("Ideal Camera Position", EInputEvent::IE_Pressed, this, &APicrossPawn::MoveToIdealTransform);
+	PlayerInputComponent->BindAction("Toggle Input Mode", EInputEvent::IE_Pressed, this, &APicrossPawn::ToggleInputMode);
 }
 
 int32 APicrossPawn::GetBlockInView() const
@@ -123,6 +123,22 @@ int32 APicrossPawn::GetBlockUnderMouse() const
 	}
 
 	return INDEX_NONE;
+}
+
+void APicrossPawn::ToggleInputMode()
+{
+	switch (InputMode)
+	{
+		case EInputMode::Default:
+			EnableAlternativeInputMode();
+			MoveToIdealTransform();
+			break;
+		case EInputMode::Alternative:
+			DisableAlternativeInputMode();
+			break;
+		default:
+			break;
+	}
 }
 
 void APicrossPawn::EnableAlternativeInputMode()
@@ -174,6 +190,11 @@ void APicrossPawn::CycleSelectionRotation()
 
 	PicrossGrid->Cycle2DRotation(BlockInView);
 	PicrossGrid->HighlightBlocks(BlockInView);
+
+	if (InputMode == EInputMode::Alternative)
+	{
+		MoveToIdealTransform();
+	}
 }
 
 void APicrossPawn::MoveSelectionUp()
@@ -181,6 +202,11 @@ void APicrossPawn::MoveSelectionUp()
 	if (!PicrossGrid) return;
 
 	PicrossGrid->Move2DSelectionUp();
+
+	if (InputMode == EInputMode::Alternative)
+	{
+		MoveToIdealTransform();
+	}
 }
 
 void APicrossPawn::MoveSelectionDown()
@@ -188,6 +214,11 @@ void APicrossPawn::MoveSelectionDown()
 	if (!PicrossGrid) return;
 
 	PicrossGrid->Move2DSelectionDown();
+
+	if (InputMode == EInputMode::Alternative)
+	{
+		MoveToIdealTransform();
+	}
 }
 
 void APicrossPawn::Undo()
@@ -226,7 +257,7 @@ void APicrossPawn::AddControllerYawInput(float Value)
 
 void APicrossPawn::MoveForward(float Value)
 {
-	if (!FMath::IsNearlyZero(Value))
+	if (InputMode != EInputMode::Alternative && !FMath::IsNearlyZero(Value))
 	{
 		AddMovementInput(GetActorForwardVector(), Value);
 	}
@@ -234,7 +265,7 @@ void APicrossPawn::MoveForward(float Value)
 
 void APicrossPawn::MoveRight(float Value)
 {
-	if (!FMath::IsNearlyZero(Value))
+	if (InputMode != EInputMode::Alternative && !FMath::IsNearlyZero(Value))
 	{
 		AddMovementInput(GetActorRightVector(), Value);
 	}
@@ -242,7 +273,7 @@ void APicrossPawn::MoveRight(float Value)
 
 void APicrossPawn::MoveUp(float Value)
 {
-	if (!FMath::IsNearlyZero(Value))
+	if (InputMode != EInputMode::Alternative && !FMath::IsNearlyZero(Value))
 	{
 		AddMovementInput(FVector::UpVector, Value);
 	}
@@ -268,6 +299,8 @@ void APicrossPawn::MoveToIdealTransform()
 
 void APicrossPawn::TogglePuzzleBrowser()
 {
+	DisableAlternativeInputMode();
+
 	if (PicrossGrid)
 	{
 		if (UGameplayStatics::IsGamePaused(this))

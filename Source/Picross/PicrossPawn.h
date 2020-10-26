@@ -36,6 +36,7 @@ protected:
 	int32 GetBlockUnderMouse() const;
 
 	// Input mode
+	void ToggleInputMode();
 	void EnableAlternativeInputMode();
 	void DisableAlternativeInputMode();
 	

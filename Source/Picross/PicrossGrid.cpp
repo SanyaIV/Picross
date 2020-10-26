@@ -648,17 +648,17 @@ TOptional<FTransform> APicrossGrid::GetIdealPawnTransform(const APawn* Pawn) con
 
 	if (Rotations.Contains(SelectionAxis) && Pawn)
 	{
+		const FVector Origin = GetTransform().TransformPosition(FVector{ 0.f, 0.f, 525.f * (static_cast<float>(Puzzle.Z()) / Puzzle.GetGridSize().GetMax()) });
+		const FVector Pivot = Puzzle[LastPivotXYZ].Transform.GetLocation();
+		const FVector PivotedOrigin = FVector{
+				SelectionAxis == EAxis::X ? Pivot.X : Origin.X,
+				SelectionAxis == EAxis::Y ? Pivot.Y : Origin.Y,
+				SelectionAxis == EAxis::Z ? Pivot.Z : Origin.Z
+		};
+
 		const FVector Direction = SelectionAxis == EAxis::X ? -GetActorForwardVector() : SelectionAxis == EAxis::Y ? GetActorRightVector() : GetActorUpVector();
 		const float Distance = 1150.f + 300 * Puzzle.DynamicScale;
-		FVector Origin, BoxExtent;
-		GetActorBounds(false, Origin, BoxExtent, true);
-		const FVector Pivot = Puzzle[LastPivotXYZ].Transform.GetLocation();
-		Origin = FVector{ 
-			SelectionAxis == EAxis::X ? Pivot.X : Origin.X,
-			SelectionAxis == EAxis::Y ? Pivot.Y : Origin.Y,
-			SelectionAxis == EAxis::Z ? Pivot.Z : Origin.Z
-		};
-		const FVector Location = Origin + Direction * Distance;
+		const FVector Location = PivotedOrigin + Direction * Distance;
 		return FTransform(GetTransform().TransformRotation(Rotations.FindChecked(SelectionAxis).Quaternion()), Location);
 	}
 	
