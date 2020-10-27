@@ -6,9 +6,12 @@
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Components/SphereComponent.h"
 #include "Engine/Classes/Kismet/GameplayStatics.h"
+#include "Engine/World.h"
 #include "GameFramework/FloatingPawnMovement.h"
 #include "PicrossGrid.h"
 #include "PicrossPlayerController.h"
+#include "TimerManager.h"
+
 
 // Sets default values
 APicrossPawn::APicrossPawn()
@@ -131,7 +134,7 @@ void APicrossPawn::ToggleInputMode()
 	{
 		case EInputMode::Default:
 			EnableAlternativeInputMode();
-			MoveToIdealTransform();
+			MoveToIdealTransformDelayed();
 			break;
 		case EInputMode::Alternative:
 			DisableAlternativeInputMode();
@@ -193,7 +196,7 @@ void APicrossPawn::CycleSelectionRotation()
 
 	if (InputMode == EInputMode::Alternative)
 	{
-		MoveToIdealTransform();
+		MoveToIdealTransformDelayed();
 	}
 }
 
@@ -205,7 +208,7 @@ void APicrossPawn::MoveSelectionUp()
 
 	if (InputMode == EInputMode::Alternative)
 	{
-		MoveToIdealTransform();
+		MoveToIdealTransformDelayed();
 	}
 }
 
@@ -217,7 +220,7 @@ void APicrossPawn::MoveSelectionDown()
 
 	if (InputMode == EInputMode::Alternative)
 	{
-		MoveToIdealTransform();
+		MoveToIdealTransformDelayed();
 	}
 }
 
@@ -277,6 +280,17 @@ void APicrossPawn::MoveUp(float Value)
 	{
 		AddMovementInput(FVector::UpVector, Value);
 	}
+}
+
+void APicrossPawn::MoveToIdealTransformDelayed()
+{
+	// We set a timer for the next frame because we want the timer for the nested timer to only start counting from the next frame.
+	// So if the next frame takes 5 seconds then the timer will be ~5.01 seconds.
+	// We do this to work around an issue where the ActorBounds doesn't give a correct origin immediately, causing a sort of race condition. 
+	GetWorld()->GetTimerManager().SetTimerForNextTick([this] {
+		FTimerHandle Handle;
+		GetWorld()->GetTimerManager().SetTimer(Handle, this, &APicrossPawn::MoveToIdealTransform, 0.01f, false);
+	});
 }
 
 void APicrossPawn::MoveToIdealTransform()

@@ -648,12 +648,16 @@ TOptional<FTransform> APicrossGrid::GetIdealPawnTransform(const APawn* Pawn) con
 
 	if (Rotations.Contains(SelectionAxis) && Pawn)
 	{
-		const FVector Origin = GetTransform().TransformPosition(FVector{ 0.f, 0.f, 525.f * (static_cast<float>(Puzzle.Z()) / Puzzle.GetGridSize().GetMax()) });
+		const FVector Origin = [this] {
+			FVector Origin, BoxExtent;
+			GetActorBounds(true, Origin, BoxExtent, true);
+			return Origin;
+		}();
 		const FVector Pivot = Puzzle[LastPivotXYZ].Transform.GetLocation();
 		const FVector PivotedOrigin = FVector{
-				SelectionAxis == EAxis::X ? Pivot.X : Origin.X,
-				SelectionAxis == EAxis::Y ? Pivot.Y : Origin.Y,
-				SelectionAxis == EAxis::Z ? Pivot.Z : Origin.Z
+			SelectionAxis == EAxis::X ? Pivot.X : Origin.X,
+			SelectionAxis == EAxis::Y ? Pivot.Y : Origin.Y,
+			SelectionAxis == EAxis::Z ? Pivot.Z : Origin.Z
 		};
 
 		const FVector Direction = SelectionAxis == EAxis::X ? -GetActorForwardVector() : SelectionAxis == EAxis::Y ? GetActorRightVector() : GetActorUpVector();

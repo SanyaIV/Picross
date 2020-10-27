@@ -58,6 +58,7 @@ protected:
 	void MoveForward(float Value);
 	void MoveRight(float Value);
 	void MoveUp(float Value);
+	void MoveToIdealTransformDelayed();
 	void MoveToIdealTransform();
 
 	void TogglePuzzleBrowser();
