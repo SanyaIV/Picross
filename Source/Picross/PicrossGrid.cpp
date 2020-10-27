@@ -574,7 +574,7 @@ bool APicrossGrid::IsSolved() const
 				return false;
 			}
 		}
-
+		
 		return true;
 	}
 
@@ -585,10 +585,12 @@ void APicrossGrid::TrySolve()
 {
 	if (IsSolved())
 	{
+		SelectionAxis = EAxis::None;
 		EnableOnlyFilledBlocks();
 		HighlightBlocks(INDEX_NONE);
 		Lock();
 		GenerateNumbers();
+		SolvedEvent.Broadcast();
 	}
 }
 

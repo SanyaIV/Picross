@@ -116,7 +116,10 @@ public:
 	TOptional<FTransform> GetIdealPawnTransform(const APawn* Pawn) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Picross")
-	void LoadPuzzle(FAssetData PuzzleToLoad); 
+	void LoadPuzzle(FAssetData PuzzleToLoad);
+
+	DECLARE_EVENT(APicrossGrid, FSolvedEvent)
+	FSolvedEvent& OnSolved() { return SolvedEvent; }
 
 protected:
 	// Called when the game starts or when spawned
@@ -211,4 +214,6 @@ private:
 	// Pointer to the created puzzle browser widget.
 	UPROPERTY()
 	class UPuzzleBrowserWidget* PuzzleBrowserWidget = nullptr;
+
+	FSolvedEvent SolvedEvent;
 };

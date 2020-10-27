@@ -49,6 +49,7 @@ protected:
 	void MoveSelectionDown();
 	void Undo();
 	void Redo();
+	void OnPuzzleSolved();
 
 	// Rotation
 	virtual void AddControllerPitchInput(float Value) override;
@@ -81,4 +82,6 @@ private:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pawn", meta = (AllowPrivateAccess = "true"))
 	float ReachDistance = 10000.f;
+
+	FTransform StartTransform = FTransform::Identity;
 };

@@ -35,8 +35,14 @@ void APicrossPawn::BeginPlay()
 
 	PicrossGrid = Cast<APicrossGrid>(UGameplayStatics::GetActorOfClass(GetWorld(), APicrossGrid::StaticClass()));
 	ensureMsgf(PicrossGrid, TEXT("PicrossPawn couldn't find any PicrossGrid."));
+	if (PicrossGrid)
+	{
+		PicrossGrid->OnSolved().AddUObject(this, &APicrossPawn::OnPuzzleSolved);
+	}
 
 	InputMode = EInputMode::Default;
+
+	GetWorld()->GetTimerManager().SetTimerForNextTick( [this] { StartTransform = GetTransform(); } );
 }
 
 void APicrossPawn::Tick(float DeltaSeconds)
@@ -238,6 +244,12 @@ void APicrossPawn::Redo()
 	PicrossGrid->Redo();
 }
 
+void APicrossPawn::OnPuzzleSolved()
+{
+	DisableAlternativeInputMode();
+	MoveToIdealTransformDelayed();
+}
+
 void APicrossPawn::AddControllerPitchInput(float Value)
 {
 	switch (InputMode)
@@ -298,15 +310,14 @@ void APicrossPawn::MoveToIdealTransform()
 	if (PicrossGrid)
 	{
 		const TOptional<FTransform> IdealTransform = PicrossGrid->GetIdealPawnTransform(this);
-		if (IdealTransform.IsSet())
-		{
-			SetActorLocation(IdealTransform.GetValue().GetLocation());
+		const FTransform NewTransform = IdealTransform.IsSet() ? IdealTransform.GetValue() : StartTransform;
+
+		SetActorLocation(NewTransform.GetLocation());
 			
-			APicrossPlayerController* PlayerController = Cast<APicrossPlayerController>(GetController());
-			if (PlayerController)
-			{
-				PlayerController->SetControlRotation(IdealTransform.GetValue().GetRotation().Rotator());
-			}
+		APicrossPlayerController* PlayerController = Cast<APicrossPlayerController>(GetController());
+		if (PlayerController)
+		{
+			PlayerController->SetControlRotation(NewTransform.GetRotation().Rotator());
 		}
 	}
 }
