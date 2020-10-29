@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
+#include "Misc/Optional.h"
 #include "PicrossPawn.generated.h"
 
 
@@ -32,8 +33,8 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 
 protected:
-	int32 GetBlockInView() const;
-	int32 GetBlockUnderMouse() const;
+	TOptional<int32> GetBlockInView() const;
+	TOptional<int32> GetBlockUnderMouse() const;
 
 	// Input mode
 	void ToggleInputMode();
@@ -75,7 +76,6 @@ private:
 	UPROPERTY()
 	class APicrossGrid* PicrossGrid = nullptr;
 	int32 StartBlockIndex = INDEX_NONE;
-	int32 BlockInView = INDEX_NONE;
 
 	UPROPERTY()
 	EInputMode InputMode = EInputMode::Default;

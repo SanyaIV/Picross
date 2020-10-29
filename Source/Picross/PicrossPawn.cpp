@@ -47,14 +47,10 @@ void APicrossPawn::BeginPlay()
 
 void APicrossPawn::Tick(float DeltaSeconds)
 {
-	const int32 CurrentBlockInView = (InputMode == EInputMode::Default ? GetBlockInView() : GetBlockUnderMouse());
-	if (CurrentBlockInView != BlockInView)
+	const TOptional<int32> CurrentBlockInView = (InputMode == EInputMode::Default ? GetBlockInView() : GetBlockUnderMouse());
+	if (CurrentBlockInView.IsSet())
 	{
-		if (PicrossGrid)
-		{
-			PicrossGrid->SetFocusedBlock(CurrentBlockInView);
-			BlockInView = CurrentBlockInView;
-		}
+		PicrossGrid->SetFocusedBlock(CurrentBlockInView.GetValue());
 	}
 }
 
@@ -92,7 +88,7 @@ void APicrossPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	PlayerInputComponent->BindAction("Toggle Input Mode", EInputEvent::IE_Pressed, this, &APicrossPawn::ToggleInputMode);
 }
 
-int32 APicrossPawn::GetBlockInView() const
+TOptional<int32> APicrossPawn::GetBlockInView() const
 {
 	APicrossPlayerController* PlayerController = Cast<APicrossPlayerController>(GetController());
 	if (PlayerController)
@@ -108,10 +104,10 @@ int32 APicrossPawn::GetBlockInView() const
 		}
 	}
 
-	return INDEX_NONE;
+	return {};
 }
 
-int32 APicrossPawn::GetBlockUnderMouse() const
+TOptional<int32> APicrossPawn::GetBlockUnderMouse() const
 {
 	APicrossPlayerController* PlayerController = Cast<APicrossPlayerController>(GetController());
 	if (PlayerController)
@@ -131,7 +127,7 @@ int32 APicrossPawn::GetBlockUnderMouse() const
 		}
 	}
 
-	return INDEX_NONE;
+	return {};
 }
 
 void APicrossPawn::ToggleInputMode()
@@ -174,14 +170,14 @@ void APicrossPawn::DisableAlternativeInputMode()
 
 void APicrossPawn::SaveStartBlock()
 {
-	StartBlockIndex = BlockInView;
+	StartBlockIndex = PicrossGrid->GetFocusedBlockIndex();
 }
 
 void APicrossPawn::FillBlocks()
 {
 	if (PicrossGrid)
 	{
-		PicrossGrid->UpdateBlocks(StartBlockIndex, BlockInView, EBlockState::Filled);
+		PicrossGrid->UpdateBlocks(StartBlockIndex, PicrossGrid->GetFocusedBlockIndex(), EBlockState::Filled);
 	}
 }
 
@@ -189,7 +185,7 @@ void APicrossPawn::CrossBlocks()
 {
 	if (PicrossGrid)
 	{
-		PicrossGrid->UpdateBlocks(StartBlockIndex, BlockInView, EBlockState::Crossed);
+		PicrossGrid->UpdateBlocks(StartBlockIndex, PicrossGrid->GetFocusedBlockIndex(), EBlockState::Crossed);
 	}
 }
 

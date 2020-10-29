@@ -113,6 +113,7 @@ public:
 	void Move2DSelectionDown();
 
 	void SetFocusedBlock(const int32 MasterIndex);
+	int32 GetFocusedBlockIndex() const { return Puzzle.GetIndex(FocusedBlock); }
 
 	TOptional<FTransform> GetIdealPawnTransform(const APawn* Pawn) const;
 
