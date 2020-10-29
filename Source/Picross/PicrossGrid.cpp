@@ -111,7 +111,7 @@ void APicrossGrid::CreateGrid()
 	UndoStack.Empty();
 	RedoStack.Empty();
 	SelectionAxis = EAxis::None;
-	LastPivotXYZ = FIntVector::ZeroValue;
+	FocusedBlock = FIntVector::ZeroValue;
 	SolutionFilledBlocksCount = Algo::Count(Puzzle.GetPuzzleData()->GetSolution(), true);
 	CurrentlyFilledBlocksCount = 0;
 
@@ -148,6 +148,7 @@ void APicrossGrid::CreateGrid()
 	}
 
 	GenerateNumbers();
+	HighlightBlocks();
 }
 
 void APicrossGrid::ClearGrid()
@@ -232,39 +233,39 @@ void APicrossGrid::Redo()
 	}
 }
 
-void APicrossGrid::HighlightBlocks(const int32 MasterIndexPivot)
+void APicrossGrid::HighlightBlocks()
 {
 	HighlightedBlocks->ClearInstances();
 
-	if (IsLocked() || MasterIndexPivot == INDEX_NONE) return;
+	if (IsLocked()) return;
 
 	switch (SelectionAxis)
 	{
 		case EAxis::X:
-			HighlightBlocksInAxis(MasterIndexPivot, EAxis::Y);
-			HighlightBlocksInAxis(MasterIndexPivot, EAxis::Z);
+			HighlightBlocksInAxis(EAxis::Y);
+			HighlightBlocksInAxis(EAxis::Z);
 			break;
 		case EAxis::Y:
-			HighlightBlocksInAxis(MasterIndexPivot, EAxis::X);
-			HighlightBlocksInAxis(MasterIndexPivot, EAxis::Z);
+			HighlightBlocksInAxis(EAxis::X);
+			HighlightBlocksInAxis(EAxis::Z);
 			break;
 		case EAxis::Z:
-			HighlightBlocksInAxis(MasterIndexPivot, EAxis::X);
-			HighlightBlocksInAxis(MasterIndexPivot, EAxis::Y);
+			HighlightBlocksInAxis(EAxis::X);
+			HighlightBlocksInAxis(EAxis::Y);
 			break;
 		case EAxis::None:
-			HighlightBlocksInAxis(MasterIndexPivot, EAxis::X);
-			HighlightBlocksInAxis(MasterIndexPivot, EAxis::Y);
-			HighlightBlocksInAxis(MasterIndexPivot, EAxis::Z);
+			HighlightBlocksInAxis(EAxis::X);
+			HighlightBlocksInAxis(EAxis::Y);
+			HighlightBlocksInAxis(EAxis::Z);
 			break;
 		default:
 			break;
 	}
 }
 
-void APicrossGrid::HighlightBlocksInAxis(const int32 MasterIndexPivot, const EAxis::Type AxisToHighlight)
+void APicrossGrid::HighlightBlocksInAxis(const EAxis::Type AxisToHighlight)
 {
-	const FIntVector XYZ = Puzzle.GetIndex(MasterIndexPivot);
+	const FIntVector XYZ = FocusedBlock;
 	const int32 EndIndex = (AxisToHighlight == EAxis::X ? Puzzle.X() : AxisToHighlight == EAxis::Y ? Puzzle.Y() : Puzzle.Z());
 
 	for (int32 AxisIndex = 0; AxisIndex < EndIndex; ++AxisIndex)
@@ -438,7 +439,7 @@ void APicrossGrid::CleanupNumbers()
 void APicrossGrid::UpdateNumbersVisibility()
 {
 	const EAxis::Type Axis = SelectionAxis;
-	const FIntVector Index = LastPivotXYZ;
+	const FIntVector Index = FocusedBlock;
 	const auto ShowOrHide = [Axis, Index](TPair<FIntVector, APicrossNumber*>& Pair) -> void 
 	{
 		const bool bShowAlways = Axis == EAxis::None;
@@ -453,13 +454,11 @@ void APicrossGrid::UpdateNumbersVisibility()
 	ForEachPicrossNumber(UpdateRotation);
 }
 
-void APicrossGrid::Cycle2DRotation(const int32 MasterIndexPivot)
+void APicrossGrid::Cycle2DRotation()
 {
 	if (IsLocked()) return;
 
 	SelectionAxis = (SelectionAxis == EAxis::None ? EAxis::Z : SelectionAxis == EAxis::Z ? EAxis::Y : SelectionAxis == EAxis::Y ? EAxis::X : EAxis::None);
-
-	LastPivotXYZ = MasterIndexPivot >= 0 ? Puzzle.GetIndex(MasterIndexPivot) : LastPivotXYZ;
 
 	switch (SelectionAxis)
 	{
@@ -470,6 +469,7 @@ void APicrossGrid::Cycle2DRotation(const int32 MasterIndexPivot)
 	}
 
 	UpdateNumbersVisibility();
+	HighlightBlocks();
 }
 
 void APicrossGrid::SetRotationXAxis()
@@ -482,7 +482,7 @@ void APicrossGrid::SetRotationXAxis()
 	{
 		for (int32 Y = 0; Y < Puzzle.Y(); ++Y)
 		{
-			CreateBlockInstance(Puzzle[FIntVector(LastPivotXYZ.X, Y, Z)]);
+			CreateBlockInstance(Puzzle[FIntVector(FocusedBlock.X, Y, Z)]);
 		}
 	}
 }
@@ -497,7 +497,7 @@ void APicrossGrid::SetRotationYAxis()
 	{
 		for (int32 X = 0; X < Puzzle.X(); ++X)
 		{
-			CreateBlockInstance(Puzzle[FIntVector(X, LastPivotXYZ.Y, Z)]);
+			CreateBlockInstance(Puzzle[FIntVector(X, FocusedBlock.Y, Z)]);
 		}
 	}
 }
@@ -512,7 +512,7 @@ void APicrossGrid::SetRotationZAxis()
 	{
 		for (int32 X = 0; X < Puzzle.X(); ++X)
 		{
-			CreateBlockInstance(Puzzle[FIntVector(X, Y, LastPivotXYZ.Z)]);
+			CreateBlockInstance(Puzzle[FIntVector(X, Y, FocusedBlock.Z)]);
 		}
 	}
 }
@@ -587,8 +587,8 @@ void APicrossGrid::TrySolve()
 	{
 		SelectionAxis = EAxis::None;
 		EnableOnlyFilledBlocks();
-		HighlightBlocks(INDEX_NONE);
 		Lock();
+		HighlightBlocks();
 		GenerateNumbers();
 		SolvedEvent.Broadcast();
 	}
@@ -601,20 +601,21 @@ void APicrossGrid::Move2DSelectionUp()
 	switch (SelectionAxis)
 	{
 		case EAxis::X:
-			LastPivotXYZ.X = LastPivotXYZ.X > 0 ? LastPivotXYZ.X - 1 : Puzzle.X() - 1;
+			FocusedBlock.X = FocusedBlock.X > 0 ? FocusedBlock.X - 1 : Puzzle.X() - 1;
 			SetRotationXAxis();
 			break;
 		case EAxis::Y:
-			LastPivotXYZ.Y = LastPivotXYZ.Y > 0 ? LastPivotXYZ.Y - 1 : Puzzle.Y() - 1;
+			FocusedBlock.Y = FocusedBlock.Y > 0 ? FocusedBlock.Y - 1 : Puzzle.Y() - 1;
 			SetRotationYAxis();
 			break;
 		case EAxis::Z:
-			LastPivotXYZ.Z = LastPivotXYZ.Z < Puzzle.Z() - 1 ? LastPivotXYZ.Z + 1 : 0;
+			FocusedBlock.Z = FocusedBlock.Z < Puzzle.Z() - 1 ? FocusedBlock.Z + 1 : 0;
 			SetRotationZAxis();
 			break;
 	}
 
 	UpdateNumbersVisibility();
+	HighlightBlocks();
 }
 
 void APicrossGrid::Move2DSelectionDown()
@@ -624,20 +625,30 @@ void APicrossGrid::Move2DSelectionDown()
 	switch (SelectionAxis)
 	{
 		case EAxis::X:
-			LastPivotXYZ.X = LastPivotXYZ.X < Puzzle.X() - 1 ? LastPivotXYZ.X + 1 : 0;
+			FocusedBlock.X = FocusedBlock.X < Puzzle.X() - 1 ? FocusedBlock.X + 1 : 0;
 			SetRotationXAxis();
 			break;
 		case EAxis::Y:
-			LastPivotXYZ.Y = LastPivotXYZ.Y < Puzzle.Y() - 1 ? LastPivotXYZ.Y + 1 : 0;
+			FocusedBlock.Y = FocusedBlock.Y < Puzzle.Y() - 1 ? FocusedBlock.Y + 1 : 0;
 			SetRotationYAxis();
 			break;
 		case EAxis::Z:
-			LastPivotXYZ.Z = LastPivotXYZ.Z > 0 ? LastPivotXYZ.Z - 1 : Puzzle.Z() - 1;
+			FocusedBlock.Z = FocusedBlock.Z > 0 ? FocusedBlock.Z - 1 : Puzzle.Z() - 1;
 			SetRotationZAxis();
 			break;
 	}
 
 	UpdateNumbersVisibility();
+	HighlightBlocks();
+}
+
+void APicrossGrid::SetFocusedBlock(const int32 MasterIndex)
+{
+	if (MasterIndex != INDEX_NONE && FocusedBlock != Puzzle.GetIndex(MasterIndex) && Puzzle.GetGrid().IsValidIndex(MasterIndex))
+	{
+		FocusedBlock = Puzzle.GetIndex(MasterIndex);
+		HighlightBlocks();
+	}
 }
 
 TOptional<FTransform> APicrossGrid::GetIdealPawnTransform(const APawn* Pawn) const
@@ -655,7 +666,7 @@ TOptional<FTransform> APicrossGrid::GetIdealPawnTransform(const APawn* Pawn) con
 			GetActorBounds(true, Origin, BoxExtent, true);
 			return Origin;
 		}();
-		const FVector Pivot = Puzzle[LastPivotXYZ].Transform.GetLocation();
+		const FVector Pivot = Puzzle[FocusedBlock].Transform.GetLocation();
 		const FVector PivotedOrigin = FVector{
 			SelectionAxis == EAxis::X ? Pivot.X : Origin.X,
 			SelectionAxis == EAxis::Y ? Pivot.Y : Origin.Y,

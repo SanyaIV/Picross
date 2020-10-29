@@ -52,7 +52,7 @@ void APicrossPawn::Tick(float DeltaSeconds)
 	{
 		if (PicrossGrid)
 		{
-			PicrossGrid->HighlightBlocks(CurrentBlockInView);
+			PicrossGrid->SetFocusedBlock(CurrentBlockInView);
 			BlockInView = CurrentBlockInView;
 		}
 	}
@@ -197,8 +197,7 @@ void APicrossPawn::CycleSelectionRotation()
 {
 	if (!PicrossGrid) return;
 
-	PicrossGrid->Cycle2DRotation(BlockInView);
-	PicrossGrid->HighlightBlocks(BlockInView);
+	PicrossGrid->Cycle2DRotation();
 
 	if (InputMode == EInputMode::Alternative)
 	{

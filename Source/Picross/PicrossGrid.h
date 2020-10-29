@@ -104,14 +104,15 @@ public:
 
 	void UpdateBlocks(const int32 StartMasterIndex, const int32 EndMasterIndex, const EBlockState Action);
 	void UpdateBlocks(const int32 StartMasterIndex, const int32 EndMasterIndex, const EBlockState PreviousState, const EBlockState NewState, const bool AddToStack = true);
-	void HighlightBlocks(const int32 MasterIndexPivot);
 
 	void Undo();
 	void Redo();
 
-	void Cycle2DRotation(const int32 MasterIndexPivot);
+	void Cycle2DRotation();
 	void Move2DSelectionUp();
 	void Move2DSelectionDown();
+
+	void SetFocusedBlock(const int32 MasterIndex);
 
 	TOptional<FTransform> GetIdealPawnTransform(const APawn* Pawn) const;
 
@@ -154,7 +155,8 @@ private:
 
 	void UpdateBlockState(FPicrossBlock& Block, const EBlockState NewState);
 	void CreateBlockInstance(FPicrossBlock& Block) const;
-	void HighlightBlocksInAxis(const int32 MasterIndexPivot, const EAxis::Type AxisToHighlight);
+	void HighlightBlocks();
+	void HighlightBlocksInAxis(const EAxis::Type AxisToHighlight);
 
 	UFUNCTION(BlueprintCallable, CallInEditor, Category = "Picross")
 	void EnableOnlyFilledBlocks();
@@ -202,8 +204,8 @@ private:
 
 	// Keeps track of the current axis of selection.
 	TEnumAsByte<EAxis::Type> SelectionAxis = EAxis::None;
-	// Caches the last index used to pivot so we can do that operation without a new pivot-index.
-	FIntVector LastPivotXYZ = FIntVector::ZeroValue;
+	// Index for focused block, will be used as pivot for example.
+	FIntVector FocusedBlock = FIntVector::ZeroValue;
 	// Lock that we can set when solution has been found so the player can't edit finished puzzles.
 	bool bLocked = false;
 
