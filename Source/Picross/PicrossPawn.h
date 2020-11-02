@@ -11,8 +11,9 @@
 UENUM()
 enum class EInputMode : uint8
 {
-	Default		UMETA(DisplayName = "Default"),
-	Alternative	UMETA(DisplayName = "Alternative")
+	KBM_Default		UMETA(DisplayName = "KBM Default"),
+	KBM_Alternative	UMETA(DisplayName = "KBM Alternative"),
+	Gamepad			UMETA(DisplayName = "Gamepad")
 };
 
 /**
@@ -37,9 +38,10 @@ protected:
 	TOptional<int32> GetBlockUnderMouse() const;
 
 	// Input mode
+	DECLARE_DELEGATE_OneParam(FSetInputModeDelegate, EInputMode);
+	void SetInputMode(EInputMode NewInputMode);
+	void DetectInput(FKey Key);
 	void ToggleInputMode();
-	void EnableAlternativeInputMode();
-	void DisableAlternativeInputMode();
 	
 	// Picross Actions
 	void SaveStartBlock();
@@ -50,6 +52,10 @@ protected:
 	void MoveSelectionDown();
 	void Undo();
 	void Redo();
+	void MoveFocusUp();
+	void MoveFocusDown();
+	void MoveFocusLeft();
+	void MoveFocusRight();
 	void OnPuzzleSolved();
 
 	// Rotation
@@ -78,7 +84,7 @@ private:
 	int32 StartBlockIndex = INDEX_NONE;
 
 	UPROPERTY()
-	EInputMode InputMode = EInputMode::Default;
+	EInputMode InputMode = EInputMode::KBM_Default;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pawn", meta = (AllowPrivateAccess = "true"))
 	float ReachDistance = 10000.f;

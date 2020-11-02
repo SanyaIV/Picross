@@ -2,7 +2,7 @@
 
 #pragma once
 
-// Default includes
+// KBM_Default includes
 #include "CoreMinimal.h"
 #include "PicrossBlock.generated.h"
 

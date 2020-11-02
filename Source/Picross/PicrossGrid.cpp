@@ -651,6 +651,82 @@ void APicrossGrid::SetFocusedBlock(const int32 MasterIndex)
 	}
 }
 
+void APicrossGrid::MoveFocusUp()
+{
+	switch (SelectionAxis)
+	{
+		case EAxis::X:
+			// Falls through
+		case EAxis::Y:
+			FocusedBlock.Z = FocusedBlock.Z < Puzzle.Z() - 1 ? FocusedBlock.Z + 1 : 0;
+			break;
+		case EAxis::Z:
+			FocusedBlock.Y = FocusedBlock.Y > 0 ? FocusedBlock.Y - 1 : Puzzle.Y() - 1;
+			break;
+		default:
+			break;
+	}
+
+	HighlightBlocks();
+}
+
+void APicrossGrid::MoveFocusDown()
+{
+	switch (SelectionAxis)
+	{
+		case EAxis::X:
+			// Falls through
+		case EAxis::Y:
+			FocusedBlock.Z = FocusedBlock.Z > 0 ? FocusedBlock.Z - 1 : Puzzle.Z() - 1;
+			break;
+		case EAxis::Z:
+			FocusedBlock.Y = FocusedBlock.Y < Puzzle.Y() -1 ? FocusedBlock.Y + 1 : 0;
+			break;
+		default:
+			break;
+	}
+
+	HighlightBlocks();
+}
+
+void APicrossGrid::MoveFocusLeft()
+{
+	switch (SelectionAxis)
+	{
+		case EAxis::X:
+			FocusedBlock.Y = FocusedBlock.Y > 0 ? FocusedBlock.Y - 1 : Puzzle.Y() - 1;
+			break;
+		case EAxis::Y:
+			// Falls through
+		case EAxis::Z:
+			FocusedBlock.X = FocusedBlock.X > 0 ? FocusedBlock.X - 1 : Puzzle.X() - 1;
+			break;
+		default:
+			break;
+	}
+
+	HighlightBlocks();
+}
+
+void APicrossGrid::MoveFocusRight()
+{
+	switch (SelectionAxis)
+	{
+		case EAxis::X:
+			FocusedBlock.Y = FocusedBlock.Y < Puzzle.Y() - 1 ? FocusedBlock.Y + 1 : 0;
+			break;
+		case EAxis::Y:
+			// Falls through
+		case EAxis::Z:
+			FocusedBlock.X = FocusedBlock.X < Puzzle.X() - 1 ? FocusedBlock.X + 1 : 0;
+			break;
+		default:
+			break;
+	}
+
+	HighlightBlocks();
+}
+
 TOptional<FTransform> APicrossGrid::GetIdealPawnTransform(const APawn* Pawn) const
 {
 	static const TMap<EAxis::Type, FRotator> Rotations{

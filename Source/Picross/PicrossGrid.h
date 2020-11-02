@@ -2,7 +2,7 @@
 
 #pragma once
 
-// Default includes
+// KBM_Default includes
 #include "Components/TextRenderComponent.h"
 #include "CoreMinimal.h"
 #include "FArray3D.h"
@@ -114,6 +114,10 @@ public:
 
 	void SetFocusedBlock(const int32 MasterIndex);
 	int32 GetFocusedBlockIndex() const { return Puzzle.GetIndex(FocusedBlock); }
+	void MoveFocusUp();
+	void MoveFocusDown();
+	void MoveFocusLeft();
+	void MoveFocusRight();
 
 	TOptional<FTransform> GetIdealPawnTransform(const APawn* Pawn) const;
 

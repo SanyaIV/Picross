@@ -40,17 +40,20 @@ void APicrossPawn::BeginPlay()
 		PicrossGrid->OnSolved().AddUObject(this, &APicrossPawn::OnPuzzleSolved);
 	}
 
-	InputMode = EInputMode::Default;
+	InputMode = EInputMode::KBM_Default;
 
 	GetWorld()->GetTimerManager().SetTimerForNextTick( [this] { StartTransform = GetTransform(); } );
 }
 
 void APicrossPawn::Tick(float DeltaSeconds)
 {
-	const TOptional<int32> CurrentBlockInView = (InputMode == EInputMode::Default ? GetBlockInView() : GetBlockUnderMouse());
-	if (CurrentBlockInView.IsSet())
+	if (InputMode != EInputMode::Gamepad)
 	{
-		PicrossGrid->SetFocusedBlock(CurrentBlockInView.GetValue());
+		const TOptional<int32> CurrentBlockInView = (InputMode == EInputMode::KBM_Default ? GetBlockInView() : GetBlockUnderMouse());
+		if (CurrentBlockInView.IsSet())
+		{
+			PicrossGrid->SetFocusedBlock(CurrentBlockInView.GetValue());
+		}
 	}
 }
 
@@ -59,12 +62,15 @@ void APicrossPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
+	// Detect type of input to let us change input mode
+	PlayerInputComponent->BindAction("AnyKey", EInputEvent::IE_Pressed, this, &APicrossPawn::DetectInput);
+
 	// Pause Menu - Set to allow execution even when paused.
 	PlayerInputComponent->BindAction("Puzzle Browser", EInputEvent::IE_Pressed, this, &APicrossPawn::TogglePuzzleBrowser).bExecuteWhenPaused = true;
 
 	// Input mode
-	PlayerInputComponent->BindAction("Alternative Input Mode", EInputEvent::IE_Pressed, this, &APicrossPawn::EnableAlternativeInputMode);
-	PlayerInputComponent->BindAction("Alternative Input Mode", EInputEvent::IE_Released, this, &APicrossPawn::DisableAlternativeInputMode);
+	PlayerInputComponent->BindAction<FSetInputModeDelegate>("Alternative Input Mode", EInputEvent::IE_Pressed, this, &APicrossPawn::SetInputMode, EInputMode::KBM_Alternative);
+	PlayerInputComponent->BindAction<FSetInputModeDelegate>("Alternative Input Mode", EInputEvent::IE_Released, this, &APicrossPawn::SetInputMode, EInputMode::KBM_Default);
 
 	// Actions
 	PlayerInputComponent->BindAction("Fill Block", EInputEvent::IE_Pressed, this, &APicrossPawn::SaveStartBlock);
@@ -76,6 +82,10 @@ void APicrossPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	PlayerInputComponent->BindAction("Cycle Selection Rotation", EInputEvent::IE_Pressed, this, &APicrossPawn::CycleSelectionRotation);
 	PlayerInputComponent->BindAction("Undo", EInputEvent::IE_Pressed, this, &APicrossPawn::Undo);
 	PlayerInputComponent->BindAction("Redo", EInputEvent::IE_Pressed, this, &APicrossPawn::Redo);
+	PlayerInputComponent->BindAction("Move Focus Up", EInputEvent::IE_Pressed, this, &APicrossPawn::MoveFocusUp);
+	PlayerInputComponent->BindAction("Move Focus Down", EInputEvent::IE_Pressed, this, &APicrossPawn::MoveFocusDown);
+	PlayerInputComponent->BindAction("Move Focus Left", EInputEvent::IE_Pressed, this, &APicrossPawn::MoveFocusLeft);
+	PlayerInputComponent->BindAction("Move Focus Right", EInputEvent::IE_Pressed, this, &APicrossPawn::MoveFocusRight);
 
 	// Rotation
 	PlayerInputComponent->BindAxis("Rotate Pitch", this, &APicrossPawn::AddControllerPitchInput);
@@ -130,41 +140,60 @@ TOptional<int32> APicrossPawn::GetBlockUnderMouse() const
 	return {};
 }
 
+void APicrossPawn::DetectInput(FKey Key)
+{
+	if (Key.IsGamepadKey())
+	{
+		SetInputMode(EInputMode::Gamepad);
+	}
+	else if (InputMode == EInputMode::Gamepad)
+	{
+		SetInputMode(EInputMode::KBM_Default);
+	}
+}
+
 void APicrossPawn::ToggleInputMode()
 {
 	switch (InputMode)
 	{
-		case EInputMode::Default:
-			EnableAlternativeInputMode();
+		case EInputMode::KBM_Default:
+			SetInputMode(EInputMode::KBM_Alternative);
 			MoveToIdealTransformDelayed();
 			break;
-		case EInputMode::Alternative:
-			DisableAlternativeInputMode();
+		case EInputMode::KBM_Alternative:
+			SetInputMode(EInputMode::KBM_Default);
 			break;
 		default:
 			break;
 	}
 }
 
-void APicrossPawn::EnableAlternativeInputMode()
+void APicrossPawn::SetInputMode(EInputMode NewInputMode)
 {
-	InputMode = EInputMode::Alternative;
-	if (APicrossPlayerController* PPC = Cast<APicrossPlayerController>(GetController()))
-	{
-		PPC->bShowMouseCursor = true;
-		PPC->bEnableClickEvents = true;
-		PPC->SetInputModeGameOnly();
-	}
-}
+	if (InputMode == NewInputMode) return;
 
-void APicrossPawn::DisableAlternativeInputMode()
-{
-	InputMode = EInputMode::Default;
+	InputMode = NewInputMode;
 	if (APicrossPlayerController* PPC = Cast<APicrossPlayerController>(GetController()))
 	{
-		PPC->bShowMouseCursor = false;
-		PPC->bEnableClickEvents = false;
-		PPC->SetInputModeGameOnly(); // We set this even though it's already set in order to work around an input issue where rotation won't be possible until left-clicking.
+		switch (InputMode)
+		{
+			case EInputMode::Gamepad:
+				MoveToIdealTransformDelayed();
+				// Falls through
+			case EInputMode::KBM_Default:
+				PPC->bShowMouseCursor = false;
+				PPC->bEnableClickEvents = false;
+				PPC->SetInputModeGameOnly(); // We set this even though it's already set in order to work around an input issue where rotation won't be possible until left-clicking.
+				break;
+			case EInputMode::KBM_Alternative:
+				PPC->bShowMouseCursor = true;
+				PPC->bEnableClickEvents = true;
+				PPC->SetInputModeGameOnly();
+				MoveToIdealTransformDelayed();
+				break;
+			default:
+				break;
+		}
 	}
 }
 
@@ -195,7 +224,7 @@ void APicrossPawn::CycleSelectionRotation()
 
 	PicrossGrid->Cycle2DRotation();
 
-	if (InputMode == EInputMode::Alternative)
+	if (InputMode == EInputMode::KBM_Alternative || InputMode == EInputMode::Gamepad)
 	{
 		MoveToIdealTransformDelayed();
 	}
@@ -207,7 +236,7 @@ void APicrossPawn::MoveSelectionUp()
 
 	PicrossGrid->Move2DSelectionUp();
 
-	if (InputMode == EInputMode::Alternative)
+	if (InputMode == EInputMode::KBM_Alternative || InputMode == EInputMode::Gamepad)
 	{
 		MoveToIdealTransformDelayed();
 	}
@@ -219,7 +248,7 @@ void APicrossPawn::MoveSelectionDown()
 
 	PicrossGrid->Move2DSelectionDown();
 
-	if (InputMode == EInputMode::Alternative)
+	if (InputMode == EInputMode::KBM_Alternative || InputMode == EInputMode::Gamepad)
 	{
 		MoveToIdealTransformDelayed();
 	}
@@ -239,9 +268,37 @@ void APicrossPawn::Redo()
 	PicrossGrid->Redo();
 }
 
+void APicrossPawn::MoveFocusUp()
+{
+	if (!PicrossGrid) return;
+
+	PicrossGrid->MoveFocusUp();
+}
+
+void APicrossPawn::MoveFocusDown()
+{
+	if (!PicrossGrid) return;
+
+	PicrossGrid->MoveFocusDown();
+}
+
+void APicrossPawn::MoveFocusLeft()
+{
+	if (!PicrossGrid) return;
+
+	PicrossGrid->MoveFocusLeft();
+}
+
+void APicrossPawn::MoveFocusRight()
+{
+	if (!PicrossGrid) return;
+
+	PicrossGrid->MoveFocusRight();
+}
+
 void APicrossPawn::OnPuzzleSolved()
 {
-	DisableAlternativeInputMode();
+	SetInputMode(EInputMode::KBM_Default);
 	MoveToIdealTransformDelayed();
 }
 
@@ -249,8 +306,10 @@ void APicrossPawn::AddControllerPitchInput(float Value)
 {
 	switch (InputMode)
 	{
-		case EInputMode::Default:
+		case EInputMode::KBM_Default:
 			APawn::AddControllerPitchInput(Value);
+			break;
+		default:
 			break;
 	}
 }
@@ -259,15 +318,17 @@ void APicrossPawn::AddControllerYawInput(float Value)
 {
 	switch (InputMode)
 	{
-		case EInputMode::Default:
+		case EInputMode::KBM_Default:
 			APawn::AddControllerYawInput(Value);
+			break;
+		default:
 			break;
 	}
 }
 
 void APicrossPawn::MoveForward(float Value)
 {
-	if (InputMode != EInputMode::Alternative && !FMath::IsNearlyZero(Value))
+	if (InputMode == EInputMode::KBM_Default && !FMath::IsNearlyZero(Value))
 	{
 		AddMovementInput(GetActorForwardVector(), Value);
 	}
@@ -275,7 +336,7 @@ void APicrossPawn::MoveForward(float Value)
 
 void APicrossPawn::MoveRight(float Value)
 {
-	if (InputMode != EInputMode::Alternative && !FMath::IsNearlyZero(Value))
+	if (InputMode == EInputMode::KBM_Default && !FMath::IsNearlyZero(Value))
 	{
 		AddMovementInput(GetActorRightVector(), Value);
 	}
@@ -283,7 +344,7 @@ void APicrossPawn::MoveRight(float Value)
 
 void APicrossPawn::MoveUp(float Value)
 {
-	if (InputMode != EInputMode::Alternative && !FMath::IsNearlyZero(Value))
+	if (InputMode == EInputMode::KBM_Default && !FMath::IsNearlyZero(Value))
 	{
 		AddMovementInput(FVector::UpVector, Value);
 	}
@@ -319,7 +380,7 @@ void APicrossPawn::MoveToIdealTransform()
 
 void APicrossPawn::TogglePuzzleBrowser()
 {
-	DisableAlternativeInputMode();
+	SetInputMode(EInputMode::KBM_Default);
 
 	if (PicrossGrid)
 	{
