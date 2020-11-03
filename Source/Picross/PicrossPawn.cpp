@@ -71,6 +71,7 @@ void APicrossPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	// Input mode
 	PlayerInputComponent->BindAction<FSetInputModeDelegate>("Alternative Input Mode", EInputEvent::IE_Pressed, this, &APicrossPawn::SetInputMode, EInputMode::KBM_Alternative);
 	PlayerInputComponent->BindAction<FSetInputModeDelegate>("Alternative Input Mode", EInputEvent::IE_Released, this, &APicrossPawn::SetInputMode, EInputMode::KBM_Default);
+	PlayerInputComponent->BindAction("Toggle Input Mode", EInputEvent::IE_Pressed, this, &APicrossPawn::ToggleInputMode);
 
 	// Actions
 	PlayerInputComponent->BindAction("Fill Block", EInputEvent::IE_Pressed, this, &APicrossPawn::SaveStartBlock);
@@ -95,7 +96,6 @@ void APicrossPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 	PlayerInputComponent->BindAxis("Move Forward", this, &APicrossPawn::MoveForward);
 	PlayerInputComponent->BindAxis("Move Right", this, &APicrossPawn::MoveRight);
 	PlayerInputComponent->BindAxis("Move Up", this, &APicrossPawn::MoveUp);
-	PlayerInputComponent->BindAction("Toggle Input Mode", EInputEvent::IE_Pressed, this, &APicrossPawn::ToggleInputMode);
 }
 
 TOptional<int32> APicrossPawn::GetBlockInView() const
@@ -189,7 +189,6 @@ void APicrossPawn::SetInputMode(EInputMode NewInputMode)
 				PPC->bShowMouseCursor = true;
 				PPC->bEnableClickEvents = true;
 				PPC->SetInputModeGameOnly();
-				MoveToIdealTransformDelayed();
 				break;
 			default:
 				break;

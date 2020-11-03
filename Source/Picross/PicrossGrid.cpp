@@ -2,6 +2,7 @@
 
 #include "PicrossGrid.h"
 #include "PicrossNumber.h"
+#include "PicrossPuzzleSaveGame.h"
 #include "Algo/Count.h"
 #include "Algo/ForEach.h"
 #include "Algo/Reverse.h"
@@ -12,7 +13,9 @@
 #include "Engine/AssetManager.h"
 #include "Engine/TextRenderActor.h"
 #include "Materials/MaterialInstance.h"
+#include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "TimerManager.h"
 #include "UI/PuzzleBrowserWidget.h"
 
 
@@ -71,6 +74,11 @@ void APicrossGrid::BeginPlay()
 	}
 
 	CreatePuzzleBrowser();
+}
+
+void APicrossGrid::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	SaveGame();
 }
 
 void APicrossGrid::CreatePuzzleBrowser()
@@ -574,10 +582,8 @@ bool APicrossGrid::IsSolved() const
 				return false;
 			}
 		}
-		
 		return true;
 	}
-
 	return false;
 }
 
@@ -590,7 +596,66 @@ void APicrossGrid::TrySolve()
 		Lock();
 		HighlightBlocks();
 		GenerateNumbers();
+		DeleteSaveGame();
 		SolvedEvent.Broadcast();
+	}
+}
+
+void APicrossGrid::SaveGame() const
+{
+	if (Puzzle.IsValid() && !IsSolved())
+	{
+		if (UPicrossPuzzleSaveGame* SaveGameInstance = Cast<UPicrossPuzzleSaveGame>(UGameplayStatics::CreateSaveGameObject(UPicrossPuzzleSaveGame::StaticClass())))
+		{
+			for (FPicrossBlock Block : Puzzle)
+			{
+				SaveGameInstance->PicrossBlockStates.Add(Block.State);
+			}
+
+			const FString SaveSlotName = Puzzle.GetPuzzleData()->GetFName().ToString();
+			static const int32 UserIndex = 0;
+			UGameplayStatics::SaveGameToSlot(SaveGameInstance, SaveSlotName, UserIndex);
+		}
+	}
+}
+
+void APicrossGrid::LoadGame()
+{
+	if (Puzzle.IsValid())
+	{
+		const FString SaveSlotName = Puzzle.GetPuzzleData()->GetFName().ToString();
+		static const int32 UserIndex = 0;
+		const bool bSaveFileExists = UGameplayStatics::DoesSaveGameExist(SaveSlotName, UserIndex);
+		if (bSaveFileExists)
+		{
+			if (UPicrossPuzzleSaveGame* LoadedGame = Cast<UPicrossPuzzleSaveGame>(UGameplayStatics::LoadGameFromSlot(SaveSlotName, UserIndex)))
+			{
+				const bool bSameSize = Puzzle.GetGrid().Num() == LoadedGame->PicrossBlockStates.Num();
+				if (bSameSize)
+				{
+					for (int32 Index = 0; Index < Puzzle.GetGrid().Num(); ++Index)
+					{
+						Puzzle[Index].State = LoadedGame->PicrossBlockStates[Index];
+					}
+
+					CurrentlyFilledBlocksCount = Algo::CountIf(Puzzle.GetGrid(), [](FPicrossBlock Block) { return Block.State == EBlockState::Filled; });
+					EnableAllBlocks();
+				}
+			}
+		}
+	}
+}
+
+void APicrossGrid::DeleteSaveGame() const
+{
+	if (Puzzle.IsValid())
+	{
+		const FString SaveSlotName = Puzzle.GetPuzzleData()->GetFName().ToString();
+		static const int32 UserIndex = 0;
+		if (UGameplayStatics::DoesSaveGameExist(SaveSlotName, UserIndex))
+		{
+			UGameplayStatics::DeleteGameInSlot(SaveSlotName, UserIndex);
+		}
 	}
 }
 
@@ -760,10 +825,13 @@ TOptional<FTransform> APicrossGrid::GetIdealPawnTransform(const APawn* Pawn) con
 
 void APicrossGrid::LoadPuzzle(FAssetData PuzzleToLoad)
 {
+	SaveGame();
+
 	Puzzle = FPicrossPuzzle(Cast<UPicrossPuzzleData>(PuzzleToLoad.GetAsset()));
 	if (Puzzle.IsValid())
 	{
 		ClosePuzzleBrowser();
 		CreateGrid();
+		LoadGame();
 	}
 }

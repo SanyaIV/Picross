@@ -128,8 +128,8 @@ public:
 	FSolvedEvent& OnSolved() { return SolvedEvent; }
 
 protected:
-	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	void CreateGrid();
 	UFUNCTION(BlueprintCallable, CallInEditor, Category = "Picross")
@@ -142,6 +142,7 @@ protected:
 
 	// The total amount of filled blocks in the puzzle solution.
 	int32 SolutionFilledBlocksCount = -1;
+	// The total amount of filled blocks in the puzzle.
 	int32 CurrentlyFilledBlocksCount = 0;
 
 private:
@@ -174,6 +175,13 @@ private:
 	void Unlock();
 	bool IsSolved() const;
 	void TrySolve() ;
+
+	UFUNCTION(BlueprintCallable, CallInEditor, Category = "Picross")
+	void SaveGame() const;
+	UFUNCTION(BlueprintCallable, CallInEditor, Category = "Picross")
+	void LoadGame();
+	UFUNCTION(BlueprintCallable, CallInEditor, Category = "Picross")
+	void DeleteSaveGame() const;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Picross Block", meta = (AllowPrivateAccess = "true"))
 	TMap<EBlockState, UStaticMesh*> BlockMeshes;
