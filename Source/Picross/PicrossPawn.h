@@ -31,6 +31,7 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void Tick(float DeltaSeconds) override;
 
 protected:
@@ -56,6 +57,8 @@ protected:
 	void MoveFocusDown();
 	void MoveFocusLeft();
 	void MoveFocusRight();
+
+	UFUNCTION()
 	void OnPuzzleSolved();
 
 	// Rotation

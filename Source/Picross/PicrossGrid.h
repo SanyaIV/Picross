@@ -124,8 +124,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Picross")
 	void LoadPuzzle(FAssetData PuzzleToLoad);
 
-	DECLARE_EVENT(APicrossGrid, FSolvedEvent)
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FSolvedEvent);
 	FSolvedEvent& OnSolved() { return SolvedEvent; }
+
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FPuzzleLoaded);
+	FPuzzleLoaded& OnPuzzleLoaded() { return PuzzleLoaded; }
 
 protected:
 	virtual void BeginPlay() override;
@@ -230,5 +233,9 @@ private:
 	UPROPERTY()
 	class UPuzzleBrowserWidget* PuzzleBrowserWidget = nullptr;
 
+	UPROPERTY(BlueprintAssignable, Category = "Picross")
 	FSolvedEvent SolvedEvent;
+
+	UPROPERTY(BlueprintAssignable, Category = "Picross")
+	FPuzzleLoaded PuzzleLoaded;
 };

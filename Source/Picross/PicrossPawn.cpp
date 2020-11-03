@@ -37,12 +37,20 @@ void APicrossPawn::BeginPlay()
 	ensureMsgf(PicrossGrid, TEXT("PicrossPawn couldn't find any PicrossGrid."));
 	if (PicrossGrid)
 	{
-		PicrossGrid->OnSolved().AddUObject(this, &APicrossPawn::OnPuzzleSolved);
+		PicrossGrid->OnSolved().AddDynamic(this, &APicrossPawn::OnPuzzleSolved);
 	}
 
 	InputMode = EInputMode::KBM_Default;
 
 	GetWorld()->GetTimerManager().SetTimerForNextTick( [this] { StartTransform = GetTransform(); } );
+}
+
+void APicrossPawn::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (PicrossGrid)
+	{
+		PicrossGrid->OnSolved().RemoveDynamic(this, &APicrossPawn::OnPuzzleSolved);
+	}
 }
 
 void APicrossPawn::Tick(float DeltaSeconds)

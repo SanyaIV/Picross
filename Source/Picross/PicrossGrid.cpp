@@ -833,5 +833,6 @@ void APicrossGrid::LoadPuzzle(FAssetData PuzzleToLoad)
 		ClosePuzzleBrowser();
 		CreateGrid();
 		LoadGame();
+		PuzzleLoaded.Broadcast();
 	}
 }
