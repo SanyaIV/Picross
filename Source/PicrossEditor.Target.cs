@@ -9,6 +9,6 @@ public class PicrossEditorTarget : TargetRules
 	{
 		Type = TargetType.Editor;
 		DefaultBuildSettings = BuildSettingsVersion.V2;
-		ExtraModuleNames.AddRange( new string[] { "Picross" } );
+		ExtraModuleNames.AddRange( new string[] { "Picross", "PicrossEditor" } );
 	}
 }

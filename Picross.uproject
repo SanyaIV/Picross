@@ -10,10 +10,14 @@
 			"LoadingPhase": "Default",
 			"AdditionalDependencies": [
 				"Engine",
-				"UnrealEd",
 				"CoreUObject",
 				"UMG"
 			]
+		},
+		{
+			"Name": "PicrossEditor",
+			"Type": "Editor",
+			"LoadingPhase": "PostEngineInit"
 		}
 	]
 }

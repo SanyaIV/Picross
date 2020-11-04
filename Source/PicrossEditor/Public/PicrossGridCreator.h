@@ -3,14 +3,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "PicrossGrid.h"
+#include "Picross/PicrossGrid.h"
 #include "PicrossGridCreator.generated.h"
 
 /**
  * Picross Puzzle Creator, used to create Puzzles.
  */
 UCLASS()
-class PICROSS_API APicrossGridCreator : public APicrossGrid
+class PICROSSEDITOR_API APicrossGridCreator : public APicrossGrid
 {
 	GENERATED_BODY()
 

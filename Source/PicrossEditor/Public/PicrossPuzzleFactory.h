@@ -10,7 +10,7 @@
  * Factory for PicrossPuzzleData
  */
 UCLASS()
-class PICROSS_API UPicrossPuzzleFactory : public UFactory
+class PICROSSEDITOR_API UPicrossPuzzleFactory : public UFactory
 {
 	GENERATED_BODY()
 	

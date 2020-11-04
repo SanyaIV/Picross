@@ -4,6 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "AssetData.h"
+#include "Containers/Array.h"
 #include "PuzzleBrowserWidget.generated.h"
 
 /**
