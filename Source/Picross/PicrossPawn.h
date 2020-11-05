@@ -7,6 +7,7 @@
 #include "Misc/Optional.h"
 #include "PicrossPawn.generated.h"
 
+enum class EBlockState : uint8;
 
 UENUM()
 enum class EInputMode : uint8
@@ -37,6 +38,7 @@ public:
 protected:
 	TOptional<int32> GetBlockInView() const;
 	TOptional<int32> GetBlockUnderMouse() const;
+	TOptional<int32> GetBlock() const;
 
 	// Input mode
 	DECLARE_DELEGATE_OneParam(FSetInputModeDelegate, EInputMode);
@@ -50,10 +52,9 @@ protected:
 	// Picross Actions
 	UFUNCTION()
 	void SaveStartBlock();
+	DECLARE_DELEGATE_OneParam(FMarkBlocksDelegate, EBlockState);
 	UFUNCTION()
-	void FillBlocks();
-	UFUNCTION()
-	void CrossBlocks();
+	void MarkBlocks(EBlockState BlockState);
 	UFUNCTION()
 	void CycleSelectionRotation();
 	UFUNCTION()
@@ -106,7 +107,7 @@ private:
 
 	UPROPERTY()
 	class APicrossGrid* PicrossGrid = nullptr;
-	int32 StartBlockIndex = INDEX_NONE;
+	TOptional<int32> StartBlockIndex;
 
 	UPROPERTY()
 	EInputMode InputMode = EInputMode::KBM_Default;

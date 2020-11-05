@@ -83,9 +83,9 @@ void APicrossPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 
 	// Actions
 	PlayerInputComponent->BindAction("Fill Block", EInputEvent::IE_Pressed, this, &APicrossPawn::SaveStartBlock);
-	PlayerInputComponent->BindAction("Fill Block", EInputEvent::IE_Released, this, &APicrossPawn::FillBlocks);
+	PlayerInputComponent->BindAction<FMarkBlocksDelegate>("Fill Block", EInputEvent::IE_Released, this, &APicrossPawn::MarkBlocks, EBlockState::Filled);
 	PlayerInputComponent->BindAction("Cross Block", EInputEvent::IE_Pressed, this, &APicrossPawn::SaveStartBlock);
-	PlayerInputComponent->BindAction("Cross Block", EInputEvent::IE_Released, this, &APicrossPawn::CrossBlocks);
+	PlayerInputComponent->BindAction<FMarkBlocksDelegate>("Cross Block", EInputEvent::IE_Released, this, &APicrossPawn::MarkBlocks, EBlockState::Crossed);
 	PlayerInputComponent->BindAction("Move Selection Up", EInputEvent::IE_Pressed, this, &APicrossPawn::MoveSelectionUp);
 	PlayerInputComponent->BindAction("Move Selection Down", EInputEvent::IE_Pressed, this, &APicrossPawn::MoveSelectionDown);
 	PlayerInputComponent->BindAction("Cycle Selection Rotation", EInputEvent::IE_Pressed, this, &APicrossPawn::CycleSelectionRotation);
@@ -148,6 +148,25 @@ TOptional<int32> APicrossPawn::GetBlockUnderMouse() const
 	return {};
 }
 
+TOptional<int32> APicrossPawn::GetBlock() const
+{
+	switch (InputMode)
+	{
+		case EInputMode::KBM_Default:
+			return GetBlockInView();
+		case EInputMode::KBM_Alternative:
+			return GetBlockUnderMouse();
+		case EInputMode::Gamepad:
+			if (PicrossGrid)
+			{
+				return PicrossGrid->GetFocusedBlockIndex();
+			}
+			// Falls through if PicrossGrid is nullptr
+		default:
+			return {};
+	}
+}
+
 void APicrossPawn::DetectInput(FKey Key)
 {
 	if (Key.IsGamepadKey())
@@ -206,22 +225,19 @@ void APicrossPawn::SetInputMode(EInputMode NewInputMode)
 
 void APicrossPawn::SaveStartBlock()
 {
-	StartBlockIndex = PicrossGrid->GetFocusedBlockIndex();
+	StartBlockIndex = GetBlock();
 }
 
-void APicrossPawn::FillBlocks()
+void APicrossPawn::MarkBlocks(EBlockState BlockState)
 {
 	if (PicrossGrid)
 	{
-		PicrossGrid->UpdateBlocks(StartBlockIndex, PicrossGrid->GetFocusedBlockIndex(), EBlockState::Filled);
-	}
-}
-
-void APicrossPawn::CrossBlocks()
-{
-	if (PicrossGrid)
-	{
-		PicrossGrid->UpdateBlocks(StartBlockIndex, PicrossGrid->GetFocusedBlockIndex(), EBlockState::Crossed);
+		const TOptional<int32> EndBlockIndex = GetBlock();
+		const bool bHasBlocks = (StartBlockIndex.IsSet() && EndBlockIndex.IsSet());
+		if (bHasBlocks)
+		{
+			PicrossGrid->UpdateBlocks(StartBlockIndex.GetValue(), EndBlockIndex.GetValue(), BlockState);
+		}
 	}
 }
 
