@@ -40,38 +40,60 @@ protected:
 
 	// Input mode
 	DECLARE_DELEGATE_OneParam(FSetInputModeDelegate, EInputMode);
+	UFUNCTION()
 	void SetInputMode(EInputMode NewInputMode);
+	UFUNCTION()
 	void DetectInput(FKey Key);
+	UFUNCTION()
 	void ToggleInputMode();
 	
 	// Picross Actions
-	void SaveStartBlock();
-	void FillBlocks();
-	void CrossBlocks();
-	void CycleSelectionRotation();
-	void MoveSelectionUp();
-	void MoveSelectionDown();
-	void Undo();
-	void Redo();
-	void MoveFocusUp();
-	void MoveFocusDown();
-	void MoveFocusLeft();
-	void MoveFocusRight();
-
 	UFUNCTION()
-	void OnPuzzleSolved();
+	void SaveStartBlock();
+	UFUNCTION()
+	void FillBlocks();
+	UFUNCTION()
+	void CrossBlocks();
+	UFUNCTION()
+	void CycleSelectionRotation();
+	UFUNCTION()
+	void MoveSelectionUp();
+	UFUNCTION()
+	void MoveSelectionDown();
+	UFUNCTION()
+	void Undo();
+	UFUNCTION()
+	void Redo();
+	UFUNCTION()
+	void MoveFocusUp();
+	UFUNCTION()
+	void MoveFocusDown();
+	UFUNCTION()
+	void MoveFocusLeft();
+	UFUNCTION()
+	void MoveFocusRight();
 
 	// Rotation
 	virtual void AddControllerPitchInput(float Value) override;
 	virtual void AddControllerYawInput(float Value) override;
 
 	// Movement
+	UFUNCTION()
 	void MoveForward(float Value);
+	UFUNCTION()
 	void MoveRight(float Value);
+	UFUNCTION()
 	void MoveUp(float Value);
+	UFUNCTION()
 	void MoveToIdealTransformDelayed();
+	UFUNCTION()
 	void MoveToIdealTransform();
+	UFUNCTION()
+	void MoveTo(const FTransform& Transform);
+	UFUNCTION()
+	void ResetTransform();
 
+	UFUNCTION()
 	void TogglePuzzleBrowser();
 
 private:
@@ -91,6 +113,4 @@ private:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pawn", meta = (AllowPrivateAccess = "true"))
 	float ReachDistance = 10000.f;
-
-	FTransform StartTransform = FTransform::Identity;
 };

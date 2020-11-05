@@ -8,9 +8,11 @@
 #include "Engine/Classes/Kismet/GameplayStatics.h"
 #include "Engine/World.h"
 #include "GameFramework/FloatingPawnMovement.h"
+#include "GameFramework/PlayerStart.h"
 #include "PicrossGrid.h"
 #include "PicrossPlayerController.h"
 #include "TimerManager.h"
+
 
 
 // Sets default values
@@ -37,19 +39,17 @@ void APicrossPawn::BeginPlay()
 	ensureMsgf(PicrossGrid, TEXT("PicrossPawn couldn't find any PicrossGrid."));
 	if (PicrossGrid)
 	{
-		PicrossGrid->OnSolved().AddDynamic(this, &APicrossPawn::OnPuzzleSolved);
+		PicrossGrid->OnPuzzleLoaded().AddDynamic(this, &APicrossPawn::ResetTransform);
 	}
 
 	InputMode = EInputMode::KBM_Default;
-
-	GetWorld()->GetTimerManager().SetTimerForNextTick( [this] { StartTransform = GetTransform(); } );
 }
 
 void APicrossPawn::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	if (PicrossGrid)
 	{
-		PicrossGrid->OnSolved().RemoveDynamic(this, &APicrossPawn::OnPuzzleSolved);
+		PicrossGrid->OnSolved().RemoveDynamic(this, &APicrossPawn::ResetTransform);
 	}
 }
 
@@ -303,12 +303,6 @@ void APicrossPawn::MoveFocusRight()
 	PicrossGrid->MoveFocusRight();
 }
 
-void APicrossPawn::OnPuzzleSolved()
-{
-	SetInputMode(EInputMode::KBM_Default);
-	MoveToIdealTransformDelayed();
-}
-
 void APicrossPawn::AddControllerPitchInput(float Value)
 {
 	switch (InputMode)
@@ -361,7 +355,7 @@ void APicrossPawn::MoveToIdealTransformDelayed()
 {
 	// We set a timer for the next frame because we want the timer for the nested timer to only start counting from the next frame.
 	// So if the next frame takes 5 seconds then the timer will be ~5.01 seconds.
-	// We do this to work around an issue where the ActorBounds doesn't give a correct origin immediately, causing a sort of race condition. 
+	// We do this to work around an issue where the ActorBounds for the grid doesn't give a correct origin immediately, causing a sort of race condition. 
 	GetWorld()->GetTimerManager().SetTimerForNextTick([this] {
 		FTimerHandle Handle;
 		GetWorld()->GetTimerManager().SetTimer(Handle, this, &APicrossPawn::MoveToIdealTransform, 0.01f, false);
@@ -373,15 +367,35 @@ void APicrossPawn::MoveToIdealTransform()
 	if (PicrossGrid)
 	{
 		const TOptional<FTransform> IdealTransform = PicrossGrid->GetIdealPawnTransform(this);
-		const FTransform NewTransform = IdealTransform.IsSet() ? IdealTransform.GetValue() : StartTransform;
-
-		SetActorLocation(NewTransform.GetLocation());
-			
-		APicrossPlayerController* PlayerController = Cast<APicrossPlayerController>(GetController());
-		if (PlayerController)
+		if (IdealTransform.IsSet())
 		{
-			PlayerController->SetControlRotation(NewTransform.GetRotation().Rotator());
+			MoveTo(IdealTransform.GetValue());
 		}
+		else
+		{
+			ResetTransform();
+		}
+	}
+}
+
+void APicrossPawn::MoveTo(const FTransform& Transform)
+{
+	SetActorLocation(Transform.GetLocation());
+
+	AController* ThisController = GetController();
+	if (ThisController)
+	{
+		ThisController->SetControlRotation(Transform.GetRotation().Rotator());
+	}
+}
+
+void APicrossPawn::ResetTransform()
+{
+	SetInputMode(EInputMode::KBM_Default);
+	const AActor* PlayerStart = UGameplayStatics::GetActorOfClass(GetWorld(), APlayerStart::StaticClass());
+	if (PlayerStart)
+	{
+		MoveTo(PlayerStart->GetTransform());
 	}
 }
 
