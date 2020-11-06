@@ -7,7 +7,6 @@
 #include "Algo/ForEach.h"
 #include "Algo/Reverse.h"
 #include "AssetDataObject.h"
-#include "Blueprint/UserWidget.h"
 #include "Components/HierarchicalInstancedStaticMeshComponent.h"
 #include "Components/TextBlock.h"
 #include "Engine/AssetManager.h"
@@ -16,7 +15,6 @@
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "TimerManager.h"
-#include "UI/PuzzleBrowserWidget.h"
 
 
 // Sets default values
@@ -72,42 +70,11 @@ void APicrossGrid::BeginPlay()
 		HighlightedBlocks->SetStaticMesh(HighlightMesh);
 		HighlightedBlocks->SetMaterial(0, HighlightMaterial);
 	}
-
-	CreatePuzzleBrowser();
 }
 
 void APicrossGrid::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	SaveGame();
-}
-
-void APicrossGrid::CreatePuzzleBrowser()
-{
-	if (PuzzleBrowserWidgetClass)
-	{
-		PuzzleBrowserWidget = Cast<UPuzzleBrowserWidget>(CreateWidget(GetWorld(), PuzzleBrowserWidgetClass, TEXT("Puzzle Browser")));
-		if (PuzzleBrowserWidget)
-		{
-			PuzzleBrowserWidget->AddToViewport();
-			PuzzleBrowserWidget->SetPicrossGrid(this);
-		}
-	}
-}
-
-void APicrossGrid::OpenPuzzleBrowser() const
-{
-	if (PuzzleBrowserWidget)
-	{
-		PuzzleBrowserWidget->AddToViewport();
-	}
-}
-
-void APicrossGrid::ClosePuzzleBrowser() const
-{
-	if (PuzzleBrowserWidget)
-	{
-		PuzzleBrowserWidget->RemoveFromViewport();
-	}
 }
 
 void APicrossGrid::CreateGrid()
@@ -830,7 +797,6 @@ void APicrossGrid::LoadPuzzle(FAssetData PuzzleToLoad)
 	Puzzle = FPicrossPuzzle(Cast<UPicrossPuzzleData>(PuzzleToLoad.GetAsset()));
 	if (Puzzle.IsValid())
 	{
-		ClosePuzzleBrowser();
 		CreateGrid();
 		LoadGame();
 		PuzzleLoaded.Broadcast();

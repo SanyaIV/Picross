@@ -21,6 +21,17 @@ void APicrossPlayerController::BeginPlay()
 			PlayerWidget->AddToPlayerScreen();
 		}
 	}
+
+	CreateMainMenu();
+	SetMainMenuEnabled(true);
+}
+
+void APicrossPlayerController::SetupInputComponent()
+{
+	Super::SetupInputComponent();
+
+	// MainMenu
+	InputComponent->BindAction("Main Menu", EInputEvent::IE_Pressed, this, &APicrossPlayerController::ToggleMainMenu).bExecuteWhenPaused = true;
 }
 
 void APicrossPlayerController::SetInputModeGameOnly()
@@ -49,4 +60,40 @@ bool APicrossPlayerController::LineTraceSingleByChannelFromCenterOfScreen(FHitRe
 		TraceChannel,
 		Params
 	);
+}
+
+void APicrossPlayerController::CreateMainMenu()
+{
+	if (MainMenuClass)
+	{
+		MainMenu = CreateWidget(GetWorld(), MainMenuClass, TEXT("Main Menu"));
+		if (MainMenu)
+		{
+			MainMenu->SetOwningPlayer(this);
+		}
+	}
+}
+
+void APicrossPlayerController::SetMainMenuEnabled(bool bEnabled)
+{
+	if (MainMenu)
+	{
+		if (bEnabled)
+		{
+			MainMenu->AddToPlayerScreen();
+		}
+		else
+		{
+			MainMenu->RemoveFromViewport();
+		}
+	}
+}
+
+void APicrossPlayerController::ToggleMainMenu()
+{
+	if (MainMenu)
+	{
+		const bool bEnable = (MainMenu->IsInViewport() ? false : true);
+		SetMainMenuEnabled(bEnable);
+	}
 }

@@ -12,7 +12,6 @@ void APicrossGridCreator::BeginPlay()
 {
 	Super::BeginPlay();
 
-	ClosePuzzleBrowser();
 	CreatePuzzle();
 }
 

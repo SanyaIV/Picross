@@ -10,16 +10,6 @@
 #include "../PicrossGrid.h"
 
 
-void UPuzzleBrowserWidget::SetPicrossGrid(class APicrossGrid* Grid)
-{
-	PicrossGrid = Grid;
-}
-
-APicrossGrid* UPuzzleBrowserWidget::GetPicrossGrid() const
-{
-	return PicrossGrid;
-}
-
 TArray<UAssetDataObject*> UPuzzleBrowserWidget::GetPuzzles()
 {
 	TArray<UAssetDataObject*> AssetDataObjects;

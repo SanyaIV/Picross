@@ -7,6 +7,7 @@
 #include "Misc/Optional.h"
 #include "PicrossPawn.generated.h"
 
+// Forward declarations
 enum class EBlockState : uint8;
 
 UENUM()
@@ -94,10 +95,10 @@ protected:
 	UFUNCTION()
 	void ResetTransform();
 
-	UFUNCTION()
-	void TogglePuzzleBrowser();
-
 private:
+	UFUNCTION()
+	void CloseMainMenu();
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Pawn", meta = (AllowPrivateAccess = "true"))
 	class UCameraComponent* Camera = nullptr;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Pawn", meta = (AllowPrivateAccess = "true"))

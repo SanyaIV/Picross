@@ -18,7 +18,6 @@
 class APicrossNumber;
 class ATextRenderActor;
 class UHierarchicalInstancedStaticMeshComponent;
-class UUserWidget;
 
 /**
  * Struct representing the action taken on a block, used for undo/redo stack.
@@ -96,9 +95,6 @@ class PICROSS_API APicrossGrid : public AActor
 public:	
 	// Sets default values for this actor's properties
 	APicrossGrid();
-
-	void OpenPuzzleBrowser() const;
-	void ClosePuzzleBrowser() const;
 	
 	bool IsLocked() const;
 
@@ -149,8 +145,6 @@ protected:
 	int32 CurrentlyFilledBlocksCount = 0;
 
 private:
-	void CreatePuzzleBrowser();
-
 	void GenerateNumbers();
 	void GenerateNumbersForAxis(const EAxis::Type Axis);
 	void CreatePicrossNumber(const EAxis::Type Axis, int32 Axis1, int32 Axis2, const FFormatOrderedArguments& Numbers);
@@ -224,14 +218,6 @@ private:
 	FIntVector FocusedBlock = FIntVector::ZeroValue;
 	// Lock that we can set when solution has been found so the player can't edit finished puzzles.
 	bool bLocked = false;
-
-	// TODO: Move to game mode, alternatively level, shouldn't be in the Grid class.
-	// The blueprint widget class that we use to create the puzzle browser widget.
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Picross", meta = (AllowPrivateAccess = "true"))
-	TSubclassOf<UUserWidget> PuzzleBrowserWidgetClass = nullptr;
-	// Pointer to the created puzzle browser widget.
-	UPROPERTY()
-	class UPuzzleBrowserWidget* PuzzleBrowserWidget = nullptr;
 
 	UPROPERTY(BlueprintAssignable, Category = "Picross")
 	FSolvedEvent SolvedEvent;

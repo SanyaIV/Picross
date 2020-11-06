@@ -29,12 +29,27 @@ public:
 	 */
 	bool LineTraceSingleByChannelFromCenterOfScreen(FHitResult& OutHit, float DistanceToCheck, ECollisionChannel TraceChannel = ECollisionChannel::ECC_Visibility) const;
 
+	UFUNCTION()
+	void SetMainMenuEnabled(bool bEnabled);
+
 protected:
 	virtual void BeginPlay() override;
+	virtual void SetupInputComponent() override;
 
 private:
+	// UI
+	UFUNCTION()
+	void CreateMainMenu();
+	UFUNCTION()
+	void ToggleMainMenu();
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "UI", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<class UUserWidget> PlayerWidgetClass = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "UI", meta = (AllowPrivateAccess = "true"))
+	TSubclassOf<UUserWidget> MainMenuClass = nullptr;
+	UPROPERTY()
+	class UUserWidget* MainMenu = nullptr;
 
 	FInputModeGameAndUI InputModeGameAndUI;
 	FInputModeGameOnly InputModeGameOnly;

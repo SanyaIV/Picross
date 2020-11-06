@@ -2,6 +2,7 @@
 
 
 #include "PicrossPawn.h"
+#include "Blueprint/UserWidget.h"
 #include "Camera/CameraComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Components/SphereComponent.h"
@@ -12,7 +13,6 @@
 #include "PicrossGrid.h"
 #include "PicrossPlayerController.h"
 #include "TimerManager.h"
-
 
 
 // Sets default values
@@ -40,6 +40,7 @@ void APicrossPawn::BeginPlay()
 	if (PicrossGrid)
 	{
 		PicrossGrid->OnPuzzleLoaded().AddDynamic(this, &APicrossPawn::ResetTransform);
+		PicrossGrid->OnPuzzleLoaded().AddDynamic(this, &APicrossPawn::CloseMainMenu);
 	}
 
 	InputMode = EInputMode::KBM_Default;
@@ -72,9 +73,6 @@ void APicrossPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 
 	// Detect type of input to let us change input mode
 	PlayerInputComponent->BindAction("AnyKey", EInputEvent::IE_Pressed, this, &APicrossPawn::DetectInput);
-
-	// Pause Menu - Set to allow execution even when paused.
-	PlayerInputComponent->BindAction("Puzzle Browser", EInputEvent::IE_Pressed, this, &APicrossPawn::TogglePuzzleBrowser).bExecuteWhenPaused = true;
 
 	// Input mode
 	PlayerInputComponent->BindAction<FSetInputModeDelegate>("Alternative Input Mode", EInputEvent::IE_Pressed, this, &APicrossPawn::SetInputMode, EInputMode::KBM_Alternative);
@@ -415,19 +413,11 @@ void APicrossPawn::ResetTransform()
 	}
 }
 
-void APicrossPawn::TogglePuzzleBrowser()
+void APicrossPawn::CloseMainMenu()
 {
-	SetInputMode(EInputMode::KBM_Default);
-
-	if (PicrossGrid)
+	APicrossPlayerController* PC = Cast<APicrossPlayerController>(GetController());
+	if (PC)
 	{
-		if (UGameplayStatics::IsGamePaused(this))
-		{
-			PicrossGrid->ClosePuzzleBrowser();
-		}
-		else
-		{
-			PicrossGrid->OpenPuzzleBrowser();
-		}
+		PC->SetMainMenuEnabled(false);
 	}
 }
