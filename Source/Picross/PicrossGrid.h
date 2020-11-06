@@ -20,17 +20,31 @@ class ATextRenderActor;
 class UHierarchicalInstancedStaticMeshComponent;
 
 /**
- * Struct representing the action taken on a block, used for undo/redo stack.
+ * Struct representing the action taken on a single block.
+ */
+USTRUCT()
+struct FPicrossBlockAction
+{
+	GENERATED_BODY();
+
+	UPROPERTY()
+	FIntVector BlockIndex;
+	UPROPERTY()
+	EBlockState PreviousState;
+	UPROPERTY()
+	EBlockState NewState;
+};
+
+/**
+ * Struct representing the action taken on a collection of blocks, used for undo/redo stack.
  */
 USTRUCT()
 struct FPicrossAction
 {
 	GENERATED_BODY();
 
-	int32 StartBlockIndex;
-	int32 EndBlockIndex;
-	EBlockState PreviousState;
-	EBlockState NewState;
+	UPROPERTY()
+	TArray<FPicrossBlockAction> Actions;
 };
 
 /**
@@ -99,7 +113,7 @@ public:
 	bool IsLocked() const;
 
 	void UpdateBlocks(const int32 StartMasterIndex, const int32 EndMasterIndex, const EBlockState Action);
-	void UpdateBlocks(const int32 StartMasterIndex, const int32 EndMasterIndex, const EBlockState PreviousState, const EBlockState NewState, const bool AddToStack = true);
+	void UpdateBlocks(const int32 StartMasterIndex, const int32 EndMasterIndex, const EBlockState PreviousState, const EBlockState NewState);
 
 	void Undo();
 	void Redo();

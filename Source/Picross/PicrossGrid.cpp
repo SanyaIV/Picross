@@ -156,13 +156,14 @@ void APicrossGrid::UpdateBlocks(const int32 StartMasterIndex, const int32 EndMas
 
 	const EBlockState PreviousState = Puzzle[StartMasterIndex].State;
 	const EBlockState NewState = Action == EBlockState::Filled ? (PreviousState != EBlockState::Filled ? EBlockState::Filled : EBlockState::Clear) : (PreviousState != EBlockState::Crossed ? EBlockState::Crossed : EBlockState::Clear);
-	UpdateBlocks(StartMasterIndex, EndMasterIndex, PreviousState, NewState, true);
+	UpdateBlocks(StartMasterIndex, EndMasterIndex, PreviousState, NewState);
 }
 
-void APicrossGrid::UpdateBlocks(const int32 StartMasterIndex, const int32 EndMasterIndex, const EBlockState PreviousState, const EBlockState NewState, const bool AddToStack)
+void APicrossGrid::UpdateBlocks(const int32 StartMasterIndex, const int32 EndMasterIndex, const EBlockState PreviousState, const EBlockState NewState)
 {
 	if (StartMasterIndex == INDEX_NONE || EndMasterIndex == INDEX_NONE) return;
 
+	FPicrossAction Action;
 	const FIntVector StartIndex = Puzzle.GetIndex(StartMasterIndex);
 	const FIntVector EndIndex = Puzzle.GetIndex(EndMasterIndex);
 
@@ -176,25 +177,25 @@ void APicrossGrid::UpdateBlocks(const int32 StartMasterIndex, const int32 EndMas
 				if (Puzzle[Index].State == PreviousState)
 				{
 					UpdateBlockState(Puzzle[Index], NewState);
+					Action.Actions.Add(FPicrossBlockAction{ Index, PreviousState, NewState });
 				}
 			}
 		}
 	}
-
-	if (AddToStack)
-	{
-		UndoStack.Push(FPicrossAction{ StartMasterIndex, EndMasterIndex, PreviousState, NewState });
-		RedoStack.Empty();
-	}
+	
+	UndoStack.Push(MoveTemp(Action));
+	RedoStack.Empty();
 }
 
 void APicrossGrid::Undo()
 {
 	if (!IsLocked() && UndoStack.Num() > 0)
 	{
-		FPicrossAction Action = UndoStack.Pop(false);
-		UpdateBlocks(Action.StartBlockIndex, Action.EndBlockIndex, Action.NewState, Action.PreviousState, false);
-		RedoStack.Push(Action);
+		for (const FPicrossBlockAction& Action : UndoStack.Top().Actions)
+		{
+			UpdateBlockState(Puzzle[Action.BlockIndex], Action.PreviousState);
+		}
+		RedoStack.Push(UndoStack.Pop());
 	}
 }
 
@@ -202,9 +203,11 @@ void APicrossGrid::Redo()
 {
 	if (!IsLocked() && RedoStack.Num() > 0)
 	{
-		FPicrossAction Action = RedoStack.Pop(false);
-		UpdateBlocks(Action.StartBlockIndex, Action.EndBlockIndex, Action.PreviousState, Action.NewState, false);
-		UndoStack.Push(Action);
+		for (const FPicrossBlockAction& Action : RedoStack.Top().Actions)
+		{
+			UpdateBlockState(Puzzle[Action.BlockIndex], Action.NewState);
+		}
+		UndoStack.Push(RedoStack.Pop());
 	}
 }
 
